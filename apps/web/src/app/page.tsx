@@ -37,7 +37,7 @@ export default function Home() {
       localStorage.setItem(`name:${joinCode.toUpperCase()}`, joinName);
       router.push(`/room/${joinCode.toUpperCase()}`);
     });
-    socket.once('error', ({ message }: { message: string }) => {
+    socket.once('join-error', ({ message }: { message: string }) => {
       setError(message);
       setLoading(false);
       socket.disconnect();

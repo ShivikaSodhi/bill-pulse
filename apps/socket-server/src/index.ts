@@ -55,7 +55,7 @@ io.on('connection', (socket) => {
   socket.on('join-room', ({ code, name }: { code: string; name: string }) => {
     const room = getRoom(code);
     if (!room) {
-      socket.emit('error', { message: 'Room not found' });
+      socket.emit('join-error', { message: 'Room not found' });
       return;
     }
     socket.join(room.code);

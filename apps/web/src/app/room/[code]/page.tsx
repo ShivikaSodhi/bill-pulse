@@ -63,7 +63,7 @@ export default function ParticipantRoom() {
       setParticipants(room.participants);
     });
 
-    socket.on('error', ({ message }: { message: string }) => setError(message));
+    socket.on('join-error', ({ message }: { message: string }) => setError(message));
 
     socket.on('poll-created', ({ poll }: { poll: Poll }) => {
       setPolls(prev => [...prev.map(p => ({ ...p, isActive: false })), { ...poll, textResponses: poll.textResponses ?? [] }]);
@@ -108,7 +108,7 @@ export default function ParticipantRoom() {
 
     return () => {
       socket.off('room-joined');
-      socket.off('error');
+      socket.off('join-error');
       socket.off('poll-created');
       socket.off('vote-update');
       socket.off('poll-closed');
