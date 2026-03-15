@@ -1,12 +1,17 @@
 {
   "name": "bill-pulse",
   "private": true,
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=apps/socket-server\" \"npm run dev --workspace=apps/web\"",
     "build": "npm run build --workspace=apps/socket-server && npm run build --workspace=apps/web"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "next": "^14.2.35"
   }
 }
