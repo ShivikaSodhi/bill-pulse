@@ -49,7 +49,7 @@ export default function Home() {
     <main className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-brand-600 mb-2">Slido</h1>
+          <h1 className="text-4xl font-bold text-brand-600 mb-2">Bill Pulse</h1>
           <p className="text-gray-500">Live polls and Q&A for your audience</p>
         </div>
 

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Slido Clone',
+  title: 'Bill Pulse',
   description: 'Live polls and Q&A for your events',
 };
 

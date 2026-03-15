@@ -1,5 +1,5 @@
 {
-  "name": "slido-clone",
+  "name": "bill-pulse",
   "private": true,
   "workspaces": ["apps/*"],
   "scripts": {
