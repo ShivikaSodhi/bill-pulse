@@ -20,6 +20,9 @@ interface Poll {
   textResponses: TextResponse[];
   imageBase64?: string;
   isActive: boolean;
+  responsesPublished: boolean;
+  duration: number;
+  endsAt?: number;
 }
 
 interface Room {
@@ -77,6 +80,10 @@ export default function HostRoom() {
       ));
     });
 
+    socket.on('responses-published', ({ pollId }: { pollId: string }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, responsesPublished: true } : p));
+    });
+
     socket.on('poll-closed', ({ pollId }: { pollId: string }) => {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false } : p));
     });
@@ -95,8 +102,6 @@ export default function HostRoom() {
 
     socket.on('participant-count', ({ count }: { count: number }) => setParticipants(count));
 
-    // If we already have room code in socket data, room was already created (from landing page)
-    // Otherwise rejoin (e.g. page refresh)
     const name = typeof window !== 'undefined' ? (localStorage.getItem(`name:${code}`) || 'Host') : 'Host';
     socket.emit('join-room', { code, name });
 
@@ -105,22 +110,27 @@ export default function HostRoom() {
       socket.off('room-created');
       socket.off('poll-created');
       socket.off('vote-update');
+      socket.off('text-response-added');
+      socket.off('responses-published');
       socket.off('poll-closed');
       socket.off('question-added');
       socket.off('question-upvoted');
       socket.off('question-archived');
-      socket.off('text-response-added');
       socket.off('participant-count');
       socket.off('connect');
     };
   }, [code]);
 
-  const handleCreatePoll = (question: string, type: 'multiple-choice' | 'open-text', options: string[], imageBase64?: string) => {
-    getSocket().emit('create-poll', { question, type, options, imageBase64 });
+  const handleCreatePoll = (question: string, type: 'multiple-choice' | 'open-text', options: string[], imageBase64?: string, duration = 0) => {
+    getSocket().emit('create-poll', { question, type, options, imageBase64, duration });
   };
 
   const handleClosePoll = (pollId: string) => {
     getSocket().emit('close-poll', { pollId });
+  };
+
+  const handlePublishResponses = (pollId: string) => {
+    getSocket().emit('publish-responses', { pollId });
   };
 
   const handleArchive = (questionId: string) => {
@@ -178,15 +188,7 @@ export default function HostRoom() {
 
             {activePoll && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Live Poll</p>
-                  <button
-                    onClick={() => handleClosePoll(activePoll.id)}
-                    className="text-xs text-red-500 hover:text-red-700 font-medium border border-red-200 px-2 py-1 rounded"
-                  >
-                    Close Poll
-                  </button>
-                </div>
+                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">Live Poll</p>
                 <PollResults
                   question={activePoll.question}
                   type={activePoll.type}
@@ -194,6 +196,11 @@ export default function HostRoom() {
                   textResponses={activePoll.textResponses}
                   imageBase64={activePoll.imageBase64}
                   isActive={true}
+                  responsesPublished={activePoll.responsesPublished}
+                  isHost={true}
+                  endsAt={activePoll.endsAt}
+                  onClose={() => handleClosePoll(activePoll.id)}
+                  onPublish={() => handlePublishResponses(activePoll.id)}
                 />
               </div>
             )}
@@ -211,6 +218,9 @@ export default function HostRoom() {
                       textResponses={poll.textResponses}
                       imageBase64={poll.imageBase64}
                       isActive={false}
+                      responsesPublished={poll.responsesPublished}
+                      isHost={true}
+                      onPublish={!poll.responsesPublished ? () => handlePublishResponses(poll.id) : undefined}
                     />
                   ))}
                 </div>

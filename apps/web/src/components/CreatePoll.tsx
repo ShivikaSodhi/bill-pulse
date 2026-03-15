@@ -3,8 +3,16 @@ import { useState, useRef } from 'react';
 
 type PollType = 'multiple-choice' | 'open-text';
 
+const DURATION_OPTIONS = [
+  { label: 'No timer', value: 0 },
+  { label: '30s', value: 30 },
+  { label: '1 min', value: 60 },
+  { label: '2 min', value: 120 },
+  { label: '5 min', value: 300 },
+];
+
 interface CreatePollProps {
-  onCreatePoll: (question: string, type: PollType, options: string[], imageBase64?: string) => void;
+  onCreatePoll: (question: string, type: PollType, options: string[], imageBase64?: string, duration?: number) => void;
 }
 
 export function CreatePoll({ onCreatePoll }: CreatePollProps) {
@@ -13,6 +21,7 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
   const [options, setOptions] = useState(['', '']);
   const [imageBase64, setImageBase64] = useState<string | undefined>();
   const [imagePreview, setImagePreview] = useState<string | undefined>();
+  const [duration, setDuration] = useState(0);
   const [open, setOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -23,10 +32,7 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 1_000_000) {
-      alert('Image must be under 1 MB');
-      return;
-    }
+    if (file.size > 1_000_000) { alert('Image must be under 1 MB'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
@@ -47,15 +53,16 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
     if (pollType === 'multiple-choice') {
       const validOptions = options.map(o => o.trim()).filter(Boolean);
       if (validOptions.length < 2) return;
-      onCreatePoll(question.trim(), pollType, validOptions, imageBase64);
+      onCreatePoll(question.trim(), pollType, validOptions, imageBase64, duration);
     } else {
-      onCreatePoll(question.trim(), pollType, [], imageBase64);
+      onCreatePoll(question.trim(), pollType, [], imageBase64, duration);
     }
     setQuestion('');
     setPollType('multiple-choice');
     setOptions(['', '']);
     setImageBase64(undefined);
     setImagePreview(undefined);
+    setDuration(0);
     setOpen(false);
   };
 
@@ -81,9 +88,7 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
             key={t}
             onClick={() => setPollType(t)}
             className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-colors ${
-              pollType === t
-                ? 'bg-brand-500 border-brand-500 text-white'
-                : 'border-gray-300 text-gray-600 hover:border-brand-400'
+              pollType === t ? 'bg-brand-500 border-brand-500 text-white' : 'border-gray-300 text-gray-600 hover:border-brand-400'
             }`}
           >
             {t === 'multiple-choice' ? 'Multiple Choice' : 'Open Text'}
@@ -100,6 +105,24 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
           value={question}
           onChange={e => setQuestion(e.target.value)}
         />
+      </div>
+
+      {/* Timer */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Timer</label>
+        <div className="flex gap-2 flex-wrap">
+          {DURATION_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setDuration(opt.value)}
+              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                duration === opt.value ? 'bg-brand-500 border-brand-500 text-white' : 'border-gray-300 text-gray-600 hover:border-brand-400'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Image upload */}
@@ -151,7 +174,7 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
 
       {pollType === 'open-text' && (
         <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-          Participants will type a free-text answer. You'll see all responses in real-time.
+          Participants type a free-text answer. Responses are hidden until you publish them.
         </p>
       )}
 

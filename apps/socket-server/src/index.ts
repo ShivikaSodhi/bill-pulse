@@ -72,17 +72,20 @@ io.on('connection', (socket) => {
     type,
     options,
     imageBase64,
+    duration,
   }: {
     question: string;
     type: 'multiple-choice' | 'open-text';
     options: string[];
     imageBase64?: string;
+    duration: number;
   }) => {
     const room = getRoom(socket.data.roomCode);
     if (!room || room.hostId !== socket.id) return;
 
     room.polls.forEach(p => { p.isActive = false; });
 
+    const now = Date.now();
     const poll: Poll = {
       id: uuidv4(),
       question,
@@ -91,10 +94,33 @@ io.on('connection', (socket) => {
       textResponses: [],
       imageBase64,
       isActive: true,
-      createdAt: Date.now(),
+      responsesPublished: false,
+      duration,
+      endsAt: duration > 0 ? now + duration * 1000 : undefined,
+      createdAt: now,
     };
     room.polls.push(poll);
     io.to(room.code).emit('poll-created', { poll });
+
+    if (duration > 0) {
+      setTimeout(() => {
+        const r = getRoom(room.code);
+        const p = r?.polls.find(p => p.id === poll.id);
+        if (p && p.isActive) {
+          p.isActive = false;
+          io.to(room.code).emit('poll-closed', { pollId: poll.id });
+        }
+      }, duration * 1000);
+    }
+  });
+
+  socket.on('publish-responses', ({ pollId }: { pollId: string }) => {
+    const room = getRoom(socket.data.roomCode);
+    if (!room || room.hostId !== socket.id) return;
+    const poll = room.polls.find(p => p.id === pollId);
+    if (!poll || poll.type !== 'open-text') return;
+    poll.responsesPublished = true;
+    io.to(room.code).emit('responses-published', { pollId, textResponses: poll.textResponses });
   });
 
   socket.on('vote', ({ pollId, optionId }: { pollId: string; optionId: string }) => {

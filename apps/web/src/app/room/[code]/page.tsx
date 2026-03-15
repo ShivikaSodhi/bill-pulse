@@ -19,6 +19,8 @@ interface Poll {
   textResponses: TextResponse[];
   imageBase64?: string;
   isActive: boolean;
+  responsesPublished: boolean;
+  endsAt?: number;
 }
 
 interface Room {
@@ -93,6 +95,12 @@ export default function ParticipantRoom() {
       ));
     });
 
+    socket.on('responses-published', ({ pollId, textResponses }: { pollId: string; textResponses: TextResponse[] }) => {
+      setPolls(prev => prev.map(p =>
+        p.id === pollId ? { ...p, responsesPublished: true, textResponses } : p
+      ));
+    });
+
     socket.on('participant-count', ({ count }: { count: number }) => setParticipants(count));
 
     const name = typeof window !== 'undefined' ? (localStorage.getItem(`name:${code}`) || 'Anonymous') : 'Anonymous';
@@ -108,6 +116,7 @@ export default function ParticipantRoom() {
       socket.off('question-upvoted');
       socket.off('question-archived');
       socket.off('text-response-added');
+      socket.off('responses-published');
       socket.off('participant-count');
       socket.off('connect');
     };
@@ -212,6 +221,8 @@ export default function ParticipantRoom() {
                   textResponses={activePoll.textResponses}
                   imageBase64={activePoll.imageBase64}
                   isActive={true}
+                  responsesPublished={activePoll.responsesPublished}
+                  endsAt={activePoll.endsAt}
                   myVote={myVotes[activePoll.id]}
                   myTextResponse={myTextResponses[activePoll.id]}
                   onVote={(optionId) => handleVote(activePoll.id, optionId)}
@@ -238,6 +249,7 @@ export default function ParticipantRoom() {
                       textResponses={poll.textResponses}
                       imageBase64={poll.imageBase64}
                       isActive={false}
+                      responsesPublished={poll.responsesPublished}
                       myVote={myVotes[poll.id]}
                       myTextResponse={myTextResponses[poll.id]}
                     />

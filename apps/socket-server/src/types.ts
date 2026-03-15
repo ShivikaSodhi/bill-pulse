@@ -19,6 +19,9 @@ export interface Poll {
   textResponses: TextResponse[];
   imageBase64?: string;
   isActive: boolean;
+  responsesPublished: boolean;
+  duration: number;
+  endsAt?: number;
   createdAt: number;
 }
 
