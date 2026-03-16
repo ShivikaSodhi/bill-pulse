@@ -13,7 +13,7 @@ export function getSocket(): Socket {
       autoConnect: false,
     });
   }
-  return socket;
+  return socket!;
 }
 
 export function disconnectSocket() {
