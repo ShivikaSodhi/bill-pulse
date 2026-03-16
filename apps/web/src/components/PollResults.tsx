@@ -20,6 +20,7 @@ interface PollResultsProps {
   textResponses?: TextResponse[];
   imageBase64?: string;
   isActive: boolean;
+  isRevealed?: boolean;
   responsesPublished?: boolean;
   isHost?: boolean;
   duration?: number;
@@ -31,6 +32,7 @@ interface PollResultsProps {
   onPublish?: () => void;
   onClose?: () => void;
   onStartTimer?: () => void;
+  onReveal?: () => void;
 }
 
 function Countdown({ endsAt }: { endsAt: number }) {
@@ -67,6 +69,7 @@ export function PollResults({
   textResponses = [],
   imageBase64,
   isActive,
+  isRevealed = true,
   responsesPublished = false,
   isHost = false,
   duration,
@@ -78,6 +81,7 @@ export function PollResults({
   onPublish,
   onClose,
   onStartTimer,
+  onReveal,
 }: PollResultsProps) {
   const [inputText, setInputText] = useState('');
   const total = options.reduce((s, o) => s + o.votes, 0);
@@ -235,16 +239,26 @@ export function PollResults({
       )}
 
       {/* Host controls */}
-      {isHost && isActive && (onClose || onStartTimer) && (
+      {isHost && isActive && (
         <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-          {isHost && isActive && duration && duration > 0 && !endsAt && onStartTimer ? (
-            <button
-              onClick={onStartTimer}
-              className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
-            >
-              ▶ Begin Timer ({duration >= 60 ? `${duration / 60}min` : `${duration}s`})
-            </button>
-          ) : <span />}
+          <div className="flex items-center gap-2">
+            {!isRevealed && onReveal && (
+              <button
+                onClick={onReveal}
+                className="text-xs bg-brand-500 hover:bg-brand-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Reveal Question
+              </button>
+            )}
+            {isRevealed && duration && duration > 0 && !endsAt && onStartTimer && (
+              <button
+                onClick={onStartTimer}
+                className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
+              >
+                ▶ Begin Timer ({duration >= 60 ? `${duration / 60}min` : `${duration}s`})
+              </button>
+            )}
+          </div>
           {onClose && (
             <button
               onClick={onClose}

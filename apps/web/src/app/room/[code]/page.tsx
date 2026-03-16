@@ -19,6 +19,7 @@ interface Poll {
   textResponses: TextResponse[];
   imageBase64?: string;
   isActive: boolean;
+  isRevealed: boolean;
   responsesPublished: boolean;
   endsAt?: number;
 }
@@ -46,18 +47,9 @@ export default function ParticipantRoom() {
   const [error, setError] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [joining, setJoining] = useState(false);
-  const initialized = useRef(false);
-
-  const doJoin = (name: string) => {
-    const socket = getSocket();
-    if (!socket.connected) socket.connect();
-    socket.emit('join-room', { code, name });
-  };
+  const hasJoined = useRef(false);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
     const socket = getSocket();
     if (!socket.connected) socket.connect();
 
@@ -93,6 +85,10 @@ export default function ParticipantRoom() {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, endsAt } : p));
     });
 
+    socket.on('poll-revealed', ({ pollId }: { pollId: string }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isRevealed: true } : p));
+    });
+
     socket.on('question-added', ({ question }: { question: Question }) => {
       setQuestions(prev => [...prev, question]);
     });
@@ -119,37 +115,43 @@ export default function ParticipantRoom() {
 
     socket.on('participants-updated', ({ count }: { count: number }) => setParticipants(count));
 
-    const savedName = typeof window !== 'undefined' ? localStorage.getItem(`name:${code}`) : null;
-    if (savedName) {
-      doJoin(savedName);
+    // Auto-join once if name is already saved (e.g. came from landing page)
+    if (!hasJoined.current) {
+      const savedName = typeof window !== 'undefined' ? localStorage.getItem(`name:${code}`) : null;
+      if (savedName) {
+        hasJoined.current = true;
+        socket.emit('join-room', { code, name: savedName });
+      }
     }
-    // if no savedName, the join form will be shown
 
     return () => {
+      socket.off('connect');
       socket.off('room-joined');
       socket.off('join-error');
       socket.off('poll-created');
       socket.off('vote-update');
       socket.off('poll-closed');
       socket.off('timer-started');
+      socket.off('poll-revealed');
       socket.off('question-added');
       socket.off('question-upvoted');
       socket.off('question-archived');
       socket.off('text-response-added');
       socket.off('responses-published');
       socket.off('participants-updated');
-      socket.off('connect');
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
 
   const handleJoinSubmit = () => {
     const name = nameInput.trim();
     if (!name) return;
     localStorage.setItem(`name:${code}`, name);
+    hasJoined.current = true;
     setJoining(true);
     setError('');
-    doJoin(name);
+    const socket = getSocket();
+    if (!socket.connected) socket.connect();
+    socket.emit('join-room', { code, name });
   };
 
   const handleVote = (pollId: string, optionId: string) => {
@@ -181,12 +183,47 @@ export default function ParticipantRoom() {
     }));
   };
 
-  if (error) {
+  const savedName = typeof window !== 'undefined' ? localStorage.getItem(`name:${code}`) : null;
+
+  // Show join form if no name saved yet (direct URL access)
+  if (!savedName && !room) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-6 space-y-4">
+          <div className="text-center mb-2">
+            <div className="font-mono font-bold text-2xl tracking-widest text-brand-600 mb-1">{code}</div>
+            <p className="text-gray-500 text-sm">Enter your name to join</p>
+          </div>
+          <input
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            placeholder="Your name"
+            value={nameInput}
+            onChange={e => setNameInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleJoinSubmit()}
+            autoFocus
+          />
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          <button
+            onClick={handleJoinSubmit}
+            disabled={!nameInput.trim() || joining}
+            className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition-colors"
+          >
+            {joining ? 'Joining...' : 'Join Room'}
+          </button>
+          <p className="text-center text-sm text-gray-400">
+            or <a href="/" className="text-brand-500 hover:underline">go to home page</a>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !room) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <p className="text-2xl text-red-500 font-semibold mb-2">Room not found</p>
-          <p className="text-gray-500 mb-4">{error}</p>
+          <p className="text-gray-500 mb-4">The room <span className="font-mono font-bold">{code}</span> doesn&apos;t exist or has ended.</p>
           <a href="/" className="text-brand-500 hover:underline">Go back home</a>
         </div>
       </div>
@@ -240,7 +277,15 @@ export default function ParticipantRoom() {
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
         {tab === 'polls' && (
           <>
-            {activePoll && (
+            {activePoll && !activePoll.isRevealed && (
+              <div className="text-center py-10">
+                <div className="text-3xl mb-3">🔒</div>
+                <p className="text-gray-600 font-medium">A question is coming...</p>
+                <p className="text-gray-400 text-sm mt-1">The host will reveal it shortly</p>
+              </div>
+            )}
+
+            {activePoll && activePoll.isRevealed && (
               <div>
                 <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">Live Now</p>
                 <PollResults
@@ -251,6 +296,7 @@ export default function ParticipantRoom() {
                   textResponses={activePoll.textResponses}
                   imageBase64={activePoll.imageBase64}
                   isActive={true}
+                  isRevealed={true}
                   responsesPublished={activePoll.responsesPublished}
                   endsAt={activePoll.endsAt}
                   myVote={myVotes[activePoll.id]}
@@ -260,7 +306,7 @@ export default function ParticipantRoom() {
                 />
               </div>
             )}
-            {!activePoll && polls.length === 0 && (
+            {!activePoll && polls.length === 0 && closedPolls.length === 0 && (
               <div className="text-center py-12 text-gray-400">
                 <div className="text-4xl mb-2">📊</div>
                 <p>Waiting for host to launch a poll...</p>

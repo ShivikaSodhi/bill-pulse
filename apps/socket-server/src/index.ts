@@ -100,6 +100,7 @@ io.on('connection', (socket) => {
       textResponses: [],
       imageBase64,
       isActive: true,
+      isRevealed: false,
       responsesPublished: false,
       duration,
       endsAt: undefined,
@@ -107,6 +108,15 @@ io.on('connection', (socket) => {
     };
     room.polls.push(poll);
     io.to(room.code).emit('poll-created', { poll });
+  });
+
+  socket.on('reveal-poll', ({ pollId }: { pollId: string }) => {
+    const room = getRoom(socket.data.roomCode);
+    if (!room || !socket.data.isHost) return;
+    const poll = room.polls.find(p => p.id === pollId);
+    if (!poll || poll.isRevealed) return;
+    poll.isRevealed = true;
+    io.to(room.code).emit('poll-revealed', { pollId });
   });
 
   socket.on('start-timer', ({ pollId }: { pollId: string }) => {

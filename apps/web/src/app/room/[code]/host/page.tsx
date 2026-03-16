@@ -20,6 +20,7 @@ interface Poll {
   textResponses: TextResponse[];
   imageBase64?: string;
   isActive: boolean;
+  isRevealed: boolean;
   responsesPublished: boolean;
   duration: number;
   endsAt?: number;
@@ -97,6 +98,10 @@ export default function HostRoom() {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, endsAt, timerStarted: true } : p));
     });
 
+    socket.on('poll-revealed', ({ pollId }: { pollId: string }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isRevealed: true } : p));
+    });
+
     socket.on('question-added', ({ question }: { question: Question }) => {
       setQuestions(prev => [...prev, question]);
     });
@@ -127,6 +132,7 @@ export default function HostRoom() {
       socket.off('responses-published');
       socket.off('poll-closed');
       socket.off('timer-started');
+      socket.off('poll-revealed');
       socket.off('question-added');
       socket.off('question-upvoted');
       socket.off('question-archived');
@@ -153,6 +159,10 @@ export default function HostRoom() {
 
   const handleStartTimer = (pollId: string) => {
     getSocket().emit('start-timer', { pollId });
+  };
+
+  const handleRevealPoll = (pollId: string) => {
+    getSocket().emit('reveal-poll', { pollId });
   };
 
   const handlePublishResponses = (pollId: string) => {
@@ -277,13 +287,15 @@ export default function HostRoom() {
                   textResponses={activePoll.textResponses}
                   imageBase64={activePoll.imageBase64}
                   isActive={true}
+                  isRevealed={activePoll.isRevealed}
                   responsesPublished={activePoll.responsesPublished}
                   isHost={true}
                   duration={activePoll.duration}
                   endsAt={activePoll.endsAt}
                   onClose={() => handleClosePoll(activePoll.id)}
                   onPublish={() => handlePublishResponses(activePoll.id)}
-                  onStartTimer={!activePoll.endsAt && activePoll.duration > 0 ? () => handleStartTimer(activePoll.id) : undefined}
+                  onStartTimer={activePoll.isRevealed && !activePoll.endsAt && activePoll.duration > 0 ? () => handleStartTimer(activePoll.id) : undefined}
+                  onReveal={!activePoll.isRevealed ? () => handleRevealPoll(activePoll.id) : undefined}
                 />
               </div>
             )}
