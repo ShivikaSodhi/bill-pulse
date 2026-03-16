@@ -45,6 +45,11 @@ export default function HostRoom() {
   const [tab, setTab] = useState<'polls' | 'qa'>('polls');
   const [socketId, setSocketId] = useState('');
   const initialized = useRef(false);
+  const pendingPollsRef = useRef<QuestionData[]>([]);
+  const autoRevealRef = useRef(false);
+
+  // Keep ref in sync with state so socket handlers can read latest value
+  useEffect(() => { pendingPollsRef.current = pendingPolls; }, [pendingPolls]);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -74,6 +79,10 @@ export default function HostRoom() {
 
     socket.on('poll-created', ({ poll }: { poll: Poll }) => {
       setPolls(prev => [...prev.map(p => ({ ...p, isActive: false })), { ...poll, textResponses: poll.textResponses ?? [] }]);
+      if (autoRevealRef.current) {
+        autoRevealRef.current = false;
+        getSocket().emit('reveal-poll', { pollId: poll.id });
+      }
     });
 
     socket.on('vote-update', ({ pollId, options }: { pollId: string; options: PollOption[] }) => {
@@ -92,6 +101,12 @@ export default function HostRoom() {
 
     socket.on('poll-closed', ({ pollId }: { pollId: string }) => {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false } : p));
+      const next = pendingPollsRef.current[0];
+      if (next) {
+        setPendingPolls(prev => prev.slice(1));
+        autoRevealRef.current = true;
+        getSocket().emit('create-poll', { question: next.question, type: next.pollType, options: next.options, imageBase64: next.imageBase64, duration: next.duration });
+      }
     });
 
     socket.on('timer-started', ({ pollId, endsAt }: { pollId: string; endsAt: number }) => {
@@ -155,10 +170,6 @@ export default function HostRoom() {
 
   const handleClosePoll = (pollId: string) => {
     getSocket().emit('close-poll', { pollId });
-  };
-
-  const handleStartTimer = (pollId: string) => {
-    getSocket().emit('start-timer', { pollId });
   };
 
   const handleRevealPoll = (pollId: string) => {
@@ -294,7 +305,6 @@ export default function HostRoom() {
                   endsAt={activePoll.endsAt}
                   onClose={() => handleClosePoll(activePoll.id)}
                   onPublish={() => handlePublishResponses(activePoll.id)}
-                  onStartTimer={activePoll.isRevealed && !activePoll.endsAt && activePoll.duration > 0 ? () => handleStartTimer(activePoll.id) : undefined}
                   onReveal={!activePoll.isRevealed ? () => handleRevealPoll(activePoll.id) : undefined}
                 />
               </div>

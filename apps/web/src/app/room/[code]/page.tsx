@@ -236,7 +236,7 @@ export default function ParticipantRoom() {
   }
 
   const activePoll = polls.find(p => p.isActive);
-  const closedPolls = polls.filter(p => !p.isActive);
+  const lastClosedPoll = !activePoll ? [...polls].filter(p => !p.isActive).pop() : undefined;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -272,60 +272,59 @@ export default function ParticipantRoom() {
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
         {tab === 'polls' && (
           <>
+            {/* No polls yet */}
+            {!activePoll && !lastClosedPoll && (
+              <div className="text-center py-20 text-gray-400">
+                <div className="text-5xl mb-3">📊</div>
+                <p className="font-medium text-gray-500">Waiting for the first question...</p>
+              </div>
+            )}
+
+            {/* Active poll – hidden from participants until revealed */}
             {activePoll && !activePoll.isRevealed && (
-              <div className="text-center py-10">
-                <div className="text-3xl mb-3">🔒</div>
-                <p className="text-gray-600 font-medium">A question is coming...</p>
-                <p className="text-gray-400 text-sm mt-1">The host will reveal it shortly</p>
+              <div className="text-center py-20">
+                <div className="text-5xl mb-4">⏳</div>
+                <p className="text-gray-600 font-semibold text-lg">Next question coming up...</p>
+                <p className="text-gray-400 text-sm mt-1">Stand by</p>
               </div>
             )}
 
             {activePoll && activePoll.isRevealed && (
+              <PollResults
+                key={activePoll.id}
+                question={activePoll.question}
+                type={activePoll.type}
+                options={activePoll.options}
+                textResponses={activePoll.textResponses}
+                imageBase64={activePoll.imageBase64}
+                isActive={true}
+                isRevealed={true}
+                responsesPublished={activePoll.responsesPublished}
+                endsAt={activePoll.endsAt}
+                myVote={myVotes[activePoll.id]}
+                myTextResponse={myTextResponses[activePoll.id]}
+                onVote={(optionId) => handleVote(activePoll.id, optionId)}
+                onTextResponse={(text) => handleTextResponse(activePoll.id, text)}
+              />
+            )}
+
+            {/* Between questions: show last poll results */}
+            {lastClosedPoll && (
               <div>
-                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">Live Now</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Results</p>
                 <PollResults
-                  key={activePoll.id}
-                  question={activePoll.question}
-                  type={activePoll.type}
-                  options={activePoll.options}
-                  textResponses={activePoll.textResponses}
-                  imageBase64={activePoll.imageBase64}
-                  isActive={true}
-                  isRevealed={true}
-                  responsesPublished={activePoll.responsesPublished}
-                  endsAt={activePoll.endsAt}
-                  myVote={myVotes[activePoll.id]}
-                  myTextResponse={myTextResponses[activePoll.id]}
-                  onVote={(optionId) => handleVote(activePoll.id, optionId)}
-                  onTextResponse={(text) => handleTextResponse(activePoll.id, text)}
+                  key={lastClosedPoll.id}
+                  question={lastClosedPoll.question}
+                  type={lastClosedPoll.type}
+                  options={lastClosedPoll.options}
+                  textResponses={lastClosedPoll.textResponses}
+                  imageBase64={lastClosedPoll.imageBase64}
+                  isActive={false}
+                  responsesPublished={lastClosedPoll.responsesPublished}
+                  myVote={myVotes[lastClosedPoll.id]}
+                  myTextResponse={myTextResponses[lastClosedPoll.id]}
                 />
-              </div>
-            )}
-            {!activePoll && polls.length === 0 && closedPolls.length === 0 && (
-              <div className="text-center py-12 text-gray-400">
-                <div className="text-4xl mb-2">📊</div>
-                <p>Waiting for host to launch a poll...</p>
-              </div>
-            )}
-            {closedPolls.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Previous Polls</p>
-                <div className="space-y-3">
-                  {closedPolls.map(poll => (
-                    <PollResults
-                      key={poll.id}
-                      question={poll.question}
-                      type={poll.type}
-                      options={poll.options}
-                      textResponses={poll.textResponses}
-                      imageBase64={poll.imageBase64}
-                      isActive={false}
-                      responsesPublished={poll.responsesPublished}
-                      myVote={myVotes[poll.id]}
-                      myTextResponse={myTextResponses[poll.id]}
-                    />
-                  ))}
-                </div>
+                <p className="text-center text-sm text-gray-400 mt-3">Waiting for next question...</p>
               </div>
             )}
           </>

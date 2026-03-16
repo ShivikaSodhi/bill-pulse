@@ -31,7 +31,6 @@ interface PollResultsProps {
   onTextResponse?: (text: string) => void;
   onPublish?: () => void;
   onClose?: () => void;
-  onStartTimer?: () => void;
   onReveal?: () => void;
 }
 
@@ -80,7 +79,6 @@ export function PollResults({
   onTextResponse,
   onPublish,
   onClose,
-  onStartTimer,
   onReveal,
 }: PollResultsProps) {
   const [inputText, setInputText] = useState('');
@@ -248,14 +246,6 @@ export function PollResults({
                 className="text-xs bg-brand-500 hover:bg-brand-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
               >
                 Reveal Question
-              </button>
-            )}
-            {isRevealed && duration && duration > 0 && !endsAt && onStartTimer && (
-              <button
-                onClick={onStartTimer}
-                className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
-              >
-                ▶ Begin Timer ({duration >= 60 ? `${duration / 60}min` : `${duration}s`})
               </button>
             )}
           </div>

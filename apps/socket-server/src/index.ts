@@ -117,6 +117,19 @@ io.on('connection', (socket) => {
     if (!poll || poll.isRevealed) return;
     poll.isRevealed = true;
     io.to(room.code).emit('poll-revealed', { pollId });
+
+    if (poll.duration > 0 && !poll.endsAt) {
+      poll.endsAt = Date.now() + poll.duration * 1000;
+      io.to(room.code).emit('timer-started', { pollId, endsAt: poll.endsAt });
+      setTimeout(() => {
+        const r = getRoom(room.code);
+        const p = r?.polls.find(p => p.id === pollId);
+        if (p && p.isActive) {
+          p.isActive = false;
+          io.to(room.code).emit('poll-closed', { pollId });
+        }
+      }, poll.duration * 1000);
+    }
   });
 
   socket.on('start-timer', ({ pollId }: { pollId: string }) => {
