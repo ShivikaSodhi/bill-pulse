@@ -25,6 +25,7 @@ interface Poll {
   duration: number;
   endsAt?: number;
   timerStarted?: boolean;
+  correctOptionId?: string;
 }
 
 interface Room {
@@ -42,6 +43,7 @@ export default function HostRoom() {
   const [participants, setParticipants] = useState(0);
   const [participantList, setParticipantList] = useState<{ id: string; name: string }[]>([]);
   const [pendingPolls, setPendingPolls] = useState<QuestionData[]>([]);
+  const [leaderboard, setLeaderboard] = useState<{ id: string; name: string; score: number }[]>([]);
   const [tab, setTab] = useState<'polls' | 'qa'>('polls');
   const [socketId, setSocketId] = useState('');
   const initialized = useRef(false);
@@ -99,13 +101,21 @@ export default function HostRoom() {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, responsesPublished: true } : p));
     });
 
-    socket.on('poll-closed', ({ pollId }: { pollId: string }) => {
-      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false } : p));
+    socket.on('correct-answer-set', ({ pollId, correctOptionId }: { pollId: string; correctOptionId: string }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, correctOptionId } : p));
+    });
+
+    socket.on('leaderboard-updated', ({ leaderboard }: { leaderboard: { id: string; name: string; score: number }[] }) => {
+      setLeaderboard([...leaderboard].sort((a, b) => b.score - a.score));
+    });
+
+    socket.on('poll-closed', ({ pollId, correctOptionId }: { pollId: string; correctOptionId?: string }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false, correctOptionId: correctOptionId ?? p.correctOptionId } : p));
       const next = pendingPollsRef.current[0];
       if (next) {
         setPendingPolls(prev => prev.slice(1));
         autoRevealRef.current = true;
-        getSocket().emit('create-poll', { question: next.question, type: next.pollType, options: next.options, imageBase64: next.imageBase64, duration: next.duration });
+        getSocket().emit('create-poll', { question: next.question, type: next.pollType, options: next.options, imageBase64: next.imageBase64, duration: next.duration, correctOptionIndex: next.correctOptionIndex });
       }
     });
 
@@ -145,6 +155,8 @@ export default function HostRoom() {
       socket.off('vote-update');
       socket.off('text-response-added');
       socket.off('responses-published');
+      socket.off('correct-answer-set');
+      socket.off('leaderboard-updated');
       socket.off('poll-closed');
       socket.off('timer-started');
       socket.off('poll-revealed');
@@ -159,12 +171,12 @@ export default function HostRoom() {
   const handleCreatePoll = (questions: QuestionData[]) => {
     if (questions.length === 0) return;
     const [first, ...rest] = questions;
-    getSocket().emit('create-poll', { question: first.question, type: first.pollType, options: first.options, imageBase64: first.imageBase64, duration: first.duration });
+    getSocket().emit('create-poll', { question: first.question, type: first.pollType, options: first.options, imageBase64: first.imageBase64, duration: first.duration, correctOptionIndex: first.correctOptionIndex });
     if (rest.length > 0) setPendingPolls(prev => [...prev, ...rest]);
   };
 
   const handleLaunchPending = (poll: QuestionData, index: number) => {
-    getSocket().emit('create-poll', { question: poll.question, type: poll.pollType, options: poll.options, imageBase64: poll.imageBase64, duration: poll.duration });
+    getSocket().emit('create-poll', { question: poll.question, type: poll.pollType, options: poll.options, imageBase64: poll.imageBase64, duration: poll.duration, correctOptionIndex: poll.correctOptionIndex });
     setPendingPolls(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -290,7 +302,17 @@ export default function HostRoom() {
 
             {activePoll && (
               <div>
-                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">Live Poll</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Live Poll</p>
+                  {pendingPolls.length > 0 && (
+                    <button
+                      onClick={() => handleClosePoll(activePoll.id)}
+                      className="text-xs bg-brand-500 hover:bg-brand-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Next Question →
+                    </button>
+                  )}
+                </div>
                 <PollResults
                   question={activePoll.question}
                   type={activePoll.type}
@@ -303,6 +325,7 @@ export default function HostRoom() {
                   isHost={true}
                   duration={activePoll.duration}
                   endsAt={activePoll.endsAt}
+                  correctOptionId={activePoll.correctOptionId}
                   onClose={() => handleClosePoll(activePoll.id)}
                   onPublish={() => handlePublishResponses(activePoll.id)}
                   onReveal={!activePoll.isRevealed ? () => handleRevealPoll(activePoll.id) : undefined}
@@ -325,8 +348,24 @@ export default function HostRoom() {
                       isActive={false}
                       responsesPublished={poll.responsesPublished}
                       isHost={true}
+                      correctOptionId={poll.correctOptionId}
                       onPublish={!poll.responsesPublished ? () => handlePublishResponses(poll.id) : undefined}
                     />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {leaderboard.length > 0 && (
+              <div className="bg-white rounded-xl shadow border border-gray-100 px-4 py-3">
+                <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-2">🏆 Leaderboard</p>
+                <div className="space-y-1.5">
+                  {leaderboard.map((entry, i) => (
+                    <div key={entry.id} className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-gray-400 w-5 text-right">{i + 1}</span>
+                      <span className="flex-1 text-sm font-medium text-gray-800 truncate">{entry.name}</span>
+                      <span className="text-sm font-bold text-yellow-600">{entry.score.toLocaleString()} pts</span>
+                    </div>
                   ))}
                 </div>
               </div>

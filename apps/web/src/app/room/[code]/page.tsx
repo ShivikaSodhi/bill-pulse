@@ -22,6 +22,7 @@ interface Poll {
   isRevealed: boolean;
   responsesPublished: boolean;
   endsAt?: number;
+  correctOptionId?: string;
 }
 
 interface Room {
@@ -47,6 +48,7 @@ export default function ParticipantRoom() {
   const [error, setError] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [joining, setJoining] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<{ id: string; name: string; score: number }[]>([]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -76,8 +78,12 @@ export default function ParticipantRoom() {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, options } : p));
     });
 
-    socket.on('poll-closed', ({ pollId }: { pollId: string }) => {
-      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false } : p));
+    socket.on('poll-closed', ({ pollId, correctOptionId }: { pollId: string; correctOptionId?: string }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false, correctOptionId } : p));
+    });
+
+    socket.on('leaderboard-updated', ({ leaderboard }: { leaderboard: { id: string; name: string; score: number }[] }) => {
+      setLeaderboard([...leaderboard].sort((a, b) => b.score - a.score));
     });
 
     socket.on('timer-started', ({ pollId, endsAt }: { pollId: string; endsAt: number }) => {
@@ -127,6 +133,7 @@ export default function ParticipantRoom() {
       socket.off('poll-created');
       socket.off('vote-update');
       socket.off('poll-closed');
+      socket.off('leaderboard-updated');
       socket.off('timer-started');
       socket.off('poll-revealed');
       socket.off('question-added');
@@ -310,8 +317,7 @@ export default function ParticipantRoom() {
 
             {/* Between questions: show last poll results */}
             {lastClosedPoll && (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Results</p>
+              <div className="space-y-3">
                 <PollResults
                   key={lastClosedPoll.id}
                   question={lastClosedPoll.question}
@@ -321,10 +327,27 @@ export default function ParticipantRoom() {
                   imageBase64={lastClosedPoll.imageBase64}
                   isActive={false}
                   responsesPublished={lastClosedPoll.responsesPublished}
+                  correctOptionId={lastClosedPoll.correctOptionId}
                   myVote={myVotes[lastClosedPoll.id]}
                   myTextResponse={myTextResponses[lastClosedPoll.id]}
                 />
-                <p className="text-center text-sm text-gray-400 mt-3">Waiting for next question...</p>
+                {leaderboard.length > 0 && (
+                  <div className="bg-white rounded-xl shadow p-4">
+                    <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-2">🏆 Leaderboard</p>
+                    <div className="space-y-1.5">
+                      {leaderboard.map((entry, i) => (
+                        <div key={entry.id} className={`flex items-center gap-3 rounded-lg px-2 py-1 ${entry.id === socketId ? 'bg-brand-50' : ''}`}>
+                          <span className="text-sm font-bold text-gray-400 w-5 text-right">{i + 1}</span>
+                          <span className="flex-1 text-sm font-medium text-gray-800 truncate">
+                            {entry.name}{entry.id === socketId ? ' (you)' : ''}
+                          </span>
+                          <span className="text-sm font-bold text-yellow-600">{entry.score.toLocaleString()} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <p className="text-center text-sm text-gray-400">Waiting for next question...</p>
               </div>
             )}
           </>

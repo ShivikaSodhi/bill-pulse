@@ -24,6 +24,8 @@ export interface Poll {
   duration: number;
   endsAt?: number;
   createdAt: number;
+  correctOptionId?: string;
+  userVotes: Record<string, string>; // socketId -> optionId
 }
 
 export interface Question {
@@ -45,5 +47,6 @@ export interface Room {
   questions: Question[];
   participants: number;
   participantList: { id: string; name: string }[];
+  leaderboard: { id: string; name: string; score: number }[];
   createdAt: number;
 }

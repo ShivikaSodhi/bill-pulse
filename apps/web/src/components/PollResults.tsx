@@ -27,6 +27,7 @@ interface PollResultsProps {
   endsAt?: number;
   myVote?: string;
   myTextResponse?: string;
+  correctOptionId?: string;
   onVote?: (optionId: string) => void;
   onTextResponse?: (text: string) => void;
   onPublish?: () => void;
@@ -75,6 +76,7 @@ export function PollResults({
   endsAt,
   myVote,
   myTextResponse,
+  correctOptionId,
   onVote,
   onTextResponse,
   onPublish,
@@ -122,6 +124,7 @@ export function PollResults({
               const pct = total > 0 ? Math.round((option.votes / total) * 100) : 0;
               const isLeader = option.votes === max && option.votes > 0;
               const voted = myVote === option.id;
+              const isCorrect = correctOptionId === option.id;
               const canVote = isActive && onVote && !myVote;
 
               return (
@@ -138,15 +141,19 @@ export function PollResults({
                       </div>
                     </button>
                   ) : (
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-sm font-medium ${voted ? 'text-brand-600' : 'text-gray-700'}`}>
-                          {voted ? '✓ ' : ''}{option.text}
+                    <div className={`rounded-lg ${isCorrect ? 'ring-2 ring-green-400' : ''}`}>
+                      <div className="flex items-center justify-between mb-1 px-0.5">
+                        <span className={`text-sm font-medium flex items-center gap-1.5 ${isCorrect ? 'text-green-700' : voted ? 'text-brand-600' : 'text-gray-700'}`}>
+                          {isCorrect && <span className="text-green-500 font-bold">✓</span>}
+                          {voted && !isCorrect && <span className="text-brand-500">●</span>}
+                          {option.text}
                         </span>
                         <span className="text-xs text-gray-500">{pct}% · {option.votes}</span>
                       </div>
                       <div className="h-6 bg-gray-100 rounded-lg overflow-hidden">
-                        <div className={`h-full rounded-lg transition-all duration-700 ${isLeader ? 'bg-brand-500' : 'bg-brand-300'}`} style={{ width: `${pct}%` }} />
+                        <div className={`h-full rounded-lg transition-all duration-700 ${
+                          isCorrect ? 'bg-green-500' : isLeader ? 'bg-brand-500' : 'bg-brand-300'
+                        }`} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   )}
@@ -154,7 +161,16 @@ export function PollResults({
               );
             })}
           </div>
-          <p className="text-xs text-gray-400 text-right">{total} total votes</p>
+          <div className="flex items-center justify-between">
+            <div>
+              {!isActive && correctOptionId && myVote && (
+                myVote === correctOptionId
+                  ? <span className="text-sm font-semibold text-green-600">+1000 pts</span>
+                  : <span className="text-sm text-red-400">Incorrect</span>
+              )}
+            </div>
+            <p className="text-xs text-gray-400">{total} total votes</p>
+          </div>
         </>
       )}
 

@@ -79,24 +79,29 @@ io.on('connection', (socket) => {
     options,
     imageBase64,
     duration,
+    correctOptionIndex,
   }: {
     question: string;
     type: 'multiple-choice' | 'open-text';
     options: string[];
     imageBase64?: string;
     duration: number;
+    correctOptionIndex?: number;
   }) => {
     const room = getRoom(socket.data.roomCode);
     if (!room || !socket.data.isHost) return;
 
     room.polls.forEach(p => { p.isActive = false; });
 
-    const now = Date.now();
+    const pollOptions = type === 'multiple-choice'
+      ? options.map(text => ({ id: uuidv4(), text, votes: 0 }))
+      : [];
+
     const poll: Poll = {
       id: uuidv4(),
       question,
       type,
-      options: type === 'multiple-choice' ? options.map(text => ({ id: uuidv4(), text, votes: 0 })) : [],
+      options: pollOptions,
       textResponses: [],
       imageBase64,
       isActive: true,
@@ -104,10 +109,20 @@ io.on('connection', (socket) => {
       responsesPublished: false,
       duration,
       endsAt: undefined,
-      createdAt: now,
+      createdAt: Date.now(),
+      userVotes: {},
+      correctOptionId: correctOptionIndex != null
+        ? pollOptions[correctOptionIndex]?.id
+        : undefined,
     };
     room.polls.push(poll);
-    io.to(room.code).emit('poll-created', { poll });
+
+    // Broadcast to room without revealing the correct answer
+    io.to(room.code).emit('poll-created', { poll: { ...poll, correctOptionId: undefined, userVotes: undefined } });
+    // Tell only the host which option is correct (so they can see it on their dashboard)
+    if (poll.correctOptionId) {
+      socket.emit('correct-answer-set', { pollId: poll.id, correctOptionId: poll.correctOptionId });
+    }
   });
 
   socket.on('reveal-poll', ({ pollId }: { pollId: string }) => {
@@ -144,7 +159,11 @@ io.on('connection', (socket) => {
       const p = r?.polls.find(p => p.id === pollId);
       if (p && p.isActive) {
         p.isActive = false;
-        io.to(room.code).emit('poll-closed', { pollId });
+        awardScores(r!, p);
+        io.to(room.code).emit('poll-closed', { pollId, correctOptionId: p.correctOptionId });
+        if (p.correctOptionId) {
+          io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
+        }
       }
     }, poll.duration * 1000);
   });
@@ -173,6 +192,7 @@ io.on('connection', (socket) => {
     const option = poll.options.find(o => o.id === optionId);
     if (!option) return;
     option.votes++;
+    poll.userVotes[socket.id] = optionId;
 
     io.to(room.code).emit('vote-update', { pollId, options: poll.options });
   });
@@ -206,7 +226,11 @@ io.on('connection', (socket) => {
     const poll = room.polls.find(p => p.id === pollId);
     if (poll) {
       poll.isActive = false;
-      io.to(room.code).emit('poll-closed', { pollId });
+      awardScores(room, poll);
+      io.to(room.code).emit('poll-closed', { pollId, correctOptionId: poll.correctOptionId });
+      if (poll.correctOptionId) {
+        io.to(room.code).emit('leaderboard-updated', { leaderboard: room.leaderboard });
+      }
     }
   });
 
@@ -267,12 +291,33 @@ io.on('connection', (socket) => {
   });
 });
 
+function awardScores(room: ReturnType<typeof getRoom>, poll: Poll) {
+  if (!room || !poll.correctOptionId) return;
+  for (const [socketId, optionId] of Object.entries(poll.userVotes)) {
+    if (optionId !== poll.correctOptionId) continue;
+    const participant = room.participantList.find(p => p.id === socketId);
+    if (!participant) continue;
+    const entry = room.leaderboard.find(e => e.id === socketId);
+    if (entry) {
+      entry.score += 1000;
+    } else {
+      room.leaderboard.push({ id: socketId, name: participant.name, score: 1000 });
+    }
+  }
+}
+
 function serializeRoom(room: ReturnType<typeof getRoom>) {
   if (!room) return null;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { hostKey, ...rest } = room;
   return {
     ...rest,
+    polls: room.polls.map(p => ({
+      ...p,
+      userVotes: undefined,
+      // Only reveal correctOptionId for closed polls
+      correctOptionId: p.isActive ? undefined : p.correctOptionId,
+    })),
     questions: room.questions.map(q => ({ ...q, upvotedBy: Array.from(q.upvotedBy) })),
   };
 }
