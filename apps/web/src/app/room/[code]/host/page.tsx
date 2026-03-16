@@ -60,7 +60,13 @@ export default function HostRoom() {
     const socket = getSocket();
     if (!socket.connected) socket.connect();
     setSocketId(socket.id || '');
-    socket.on('connect', () => setSocketId(socket.id || ''));
+    const rejoin = () => {
+      setSocketId(socket.id || '');
+      const name = typeof window !== 'undefined' ? (localStorage.getItem(`name:${code}`) || 'Host') : 'Host';
+      const hostKey = typeof window !== 'undefined' ? (localStorage.getItem(`hostKey:${code}`) ?? undefined) : undefined;
+      socket.emit('join-room', { code, name, hostKey });
+    };
+    socket.on('connect', rejoin);
 
     const handleRoomData = ({ room }: { room: Room & { polls: Poll[]; questions: Question[]; participantList: { id: string; name: string }[] } }) => {
       setRoom(room);
@@ -144,9 +150,8 @@ export default function HostRoom() {
       setParticipantList(list);
     });
 
-    const name = typeof window !== 'undefined' ? (localStorage.getItem(`name:${code}`) || 'Host') : 'Host';
-    const hostKey = typeof window !== 'undefined' ? (localStorage.getItem(`hostKey:${code}`) ?? undefined) : undefined;
-    socket.emit('join-room', { code, name, hostKey });
+    // Initial join (socket may already be connected)
+    if (socket.connected) rejoin();
 
     return () => {
       socket.off('room-joined');

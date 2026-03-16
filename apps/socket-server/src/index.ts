@@ -141,7 +141,11 @@ io.on('connection', (socket) => {
         const p = r?.polls.find(p => p.id === pollId);
         if (p && p.isActive) {
           p.isActive = false;
-          io.to(room.code).emit('poll-closed', { pollId });
+          awardScores(r!, p);
+          io.to(room.code).emit('poll-closed', { pollId, correctOptionId: p.correctOptionId });
+          if (p.correctOptionId) {
+            io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
+          }
         }
       }, poll.duration * 1000);
     }
