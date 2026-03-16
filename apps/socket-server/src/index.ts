@@ -61,9 +61,13 @@ io.on('connection', (socket) => {
     socket.data.isHost = isHost;
     if (isHost) room.hostId = socket.id;
 
-    room.participants++;
+    if (!isHost) {
+      room.participants++;
+      room.participantList.push({ id: socket.id, name });
+    }
+
     socket.emit('room-joined', { room: serializeRoom(room) });
-    io.to(room.code).emit('participant-count', { count: room.participants });
+    io.to(room.code).emit('participants-updated', { count: room.participants, list: room.participantList });
   });
 
   socket.on('create-poll', ({
@@ -229,9 +233,10 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     const room = getRoom(socket.data.roomCode);
-    if (room) {
+    if (room && !socket.data.isHost) {
       room.participants = Math.max(0, room.participants - 1);
-      io.to(room.code).emit('participant-count', { count: room.participants });
+      room.participantList = room.participantList.filter(p => p.id !== socket.id);
+      io.to(room.code).emit('participants-updated', { count: room.participants, list: room.participantList });
     }
   });
 });

@@ -105,7 +105,7 @@ export default function ParticipantRoom() {
       ));
     });
 
-    socket.on('participant-count', ({ count }: { count: number }) => setParticipants(count));
+    socket.on('participants-updated', ({ count }: { count: number }) => setParticipants(count));
 
     const name = typeof window !== 'undefined' ? (localStorage.getItem(`name:${code}`) || 'Anonymous') : 'Anonymous';
     socket.emit('join-room', { code, name });
@@ -122,7 +122,7 @@ export default function ParticipantRoom() {
       socket.off('question-archived');
       socket.off('text-response-added');
       socket.off('responses-published');
-      socket.off('participant-count');
+      socket.off('participants-updated');
       socket.off('connect');
     };
   }, [code]);

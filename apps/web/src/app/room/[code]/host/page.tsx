@@ -39,6 +39,7 @@ export default function HostRoom() {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [participants, setParticipants] = useState(0);
+  const [participantList, setParticipantList] = useState<{ id: string; name: string }[]>([]);
   const [pendingPolls, setPendingPolls] = useState<QuestionData[]>([]);
   const [tab, setTab] = useState<'polls' | 'qa'>('polls');
   const [socketId, setSocketId] = useState('');
@@ -53,19 +54,21 @@ export default function HostRoom() {
     setSocketId(socket.id || '');
     socket.on('connect', () => setSocketId(socket.id || ''));
 
-    const handleRoomData = ({ room }: { room: Room & { polls: Poll[]; questions: Question[] } }) => {
+    const handleRoomData = ({ room }: { room: Room & { polls: Poll[]; questions: Question[]; participantList: { id: string; name: string }[] } }) => {
       setRoom(room);
       setPolls(room.polls);
       setQuestions(room.questions);
       setParticipants(room.participants);
+      setParticipantList(room.participantList ?? []);
     };
 
     socket.on('room-joined', handleRoomData);
-    socket.on('room-created', ({ room }: { code: string; room: Room & { polls: Poll[]; questions: Question[] } }) => {
+    socket.on('room-created', ({ room }: { code: string; room: Room & { polls: Poll[]; questions: Question[]; participantList: { id: string; name: string }[] } }) => {
       setRoom(room);
       setPolls(room.polls);
       setQuestions(room.questions);
       setParticipants(room.participants);
+      setParticipantList(room.participantList ?? []);
     });
 
     socket.on('poll-created', ({ poll }: { poll: Poll }) => {
@@ -106,7 +109,10 @@ export default function HostRoom() {
       setQuestions(prev => prev.filter(q => q.id !== questionId));
     });
 
-    socket.on('participant-count', ({ count }: { count: number }) => setParticipants(count));
+    socket.on('participants-updated', ({ count, list }: { count: number; list: { id: string; name: string }[] }) => {
+      setParticipants(count);
+      setParticipantList(list);
+    });
 
     const name = typeof window !== 'undefined' ? (localStorage.getItem(`name:${code}`) || 'Host') : 'Host';
     const hostKey = typeof window !== 'undefined' ? (localStorage.getItem(`hostKey:${code}`) ?? undefined) : undefined;
@@ -124,7 +130,7 @@ export default function HostRoom() {
       socket.off('question-added');
       socket.off('question-upvoted');
       socket.off('question-archived');
-      socket.off('participant-count');
+      socket.off('participants-updated');
       socket.off('connect');
     };
   }, [code]);
@@ -204,15 +210,29 @@ export default function HostRoom() {
       <div className="max-w-2xl mx-auto px-4 pt-5 space-y-5">
         {tab === 'polls' && (
           <>
-            <div className="flex items-center gap-3 bg-white rounded-xl shadow px-4 py-3 border border-gray-100">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-              </span>
-              <span className="text-sm font-medium text-gray-700">
-                <span className="text-2xl font-bold text-gray-900 mr-1">{participants}</span>
-                participant{participants !== 1 ? 's' : ''} joined
-              </span>
+            <div className="bg-white rounded-xl shadow border border-gray-100 px-4 py-3">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="relative flex h-3 w-3 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                <span className="text-sm font-medium text-gray-700">
+                  <span className="text-2xl font-bold text-gray-900 mr-1">{participants}</span>
+                  participant{participants !== 1 ? 's' : ''} joined
+                </span>
+              </div>
+              {participantList.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {participantList.map(p => (
+                    <span key={p.id} className="text-xs bg-brand-50 text-brand-700 border border-brand-100 px-2 py-0.5 rounded-full font-medium">
+                      {p.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {participantList.length === 0 && (
+                <p className="text-xs text-gray-400">Waiting for participants to join...</p>
+              )}
             </div>
 
             <CreatePoll onCreatePoll={handleCreatePoll} />

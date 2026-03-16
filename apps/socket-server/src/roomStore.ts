@@ -27,6 +27,7 @@ export function createRoom(hostId: string, hostName: string, title: string): Roo
     polls: [],
     questions: [],
     participants: 0,
+    participantList: [],
     createdAt: Date.now(),
   };
   rooms.set(code, room);

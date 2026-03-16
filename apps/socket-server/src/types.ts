@@ -43,5 +43,6 @@ export interface Room {
   polls: Poll[];
   questions: Question[];
   participants: number;
+  participantList: { id: string; name: string }[];
   createdAt: number;
 }
