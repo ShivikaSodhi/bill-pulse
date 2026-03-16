@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getSocket } from '@/lib/socket';
 import { PollResults, TextResponse } from '@/components/PollResults';
@@ -47,7 +47,6 @@ export default function ParticipantRoom() {
   const [error, setError] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [joining, setJoining] = useState(false);
-  const hasJoined = useRef(false);
 
   useEffect(() => {
     const socket = getSocket();
@@ -115,13 +114,10 @@ export default function ParticipantRoom() {
 
     socket.on('participants-updated', ({ count }: { count: number }) => setParticipants(count));
 
-    // Auto-join once if name is already saved (e.g. came from landing page)
-    if (!hasJoined.current) {
-      const savedName = typeof window !== 'undefined' ? localStorage.getItem(`name:${code}`) : null;
-      if (savedName) {
-        hasJoined.current = true;
-        socket.emit('join-room', { code, name: savedName });
-      }
+    // Auto-join if name is already saved (e.g. came from landing page)
+    const savedName = typeof window !== 'undefined' ? localStorage.getItem(`name:${code}`) : null;
+    if (savedName) {
+      socket.emit('join-room', { code, name: savedName });
     }
 
     return () => {
@@ -146,7 +142,6 @@ export default function ParticipantRoom() {
     const name = nameInput.trim();
     if (!name) return;
     localStorage.setItem(`name:${code}`, name);
-    hasJoined.current = true;
     setJoining(true);
     setError('');
     const socket = getSocket();
