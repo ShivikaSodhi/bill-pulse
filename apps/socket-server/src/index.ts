@@ -143,9 +143,8 @@ io.on('connection', (socket) => {
           p.isActive = false;
           awardScores(r!, p);
           io.to(room.code).emit('poll-closed', { pollId, correctOptionId: p.correctOptionId });
-          if (p.correctOptionId) {
-            io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
-          }
+          if (p.correctOptionId) io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
+          io.to(r!.hostId).emit('poll-voter-details', { pollId, voterDetails: getVoterDetails(r!, p) });
         }
       }, poll.duration * 1000);
     }
@@ -165,9 +164,8 @@ io.on('connection', (socket) => {
         p.isActive = false;
         awardScores(r!, p);
         io.to(room.code).emit('poll-closed', { pollId, correctOptionId: p.correctOptionId });
-        if (p.correctOptionId) {
-          io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
-        }
+        if (p.correctOptionId) io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
+        io.to(r!.hostId).emit('poll-voter-details', { pollId, voterDetails: getVoterDetails(r!, p) });
       }
     }, poll.duration * 1000);
   });
@@ -235,6 +233,7 @@ io.on('connection', (socket) => {
       if (poll.correctOptionId) {
         io.to(room.code).emit('leaderboard-updated', { leaderboard: room.leaderboard });
       }
+      socket.emit('poll-voter-details', { pollId, voterDetails: getVoterDetails(room, poll) });
     }
   });
 
@@ -294,6 +293,19 @@ io.on('connection', (socket) => {
     }
   });
 });
+
+function getVoterDetails(room: ReturnType<typeof getRoom>, poll: Poll) {
+  if (!room) return [];
+  return Object.entries(poll.userVotes).map(([socketId, optionId]) => {
+    const participant = room.participantList.find(p => p.id === socketId);
+    const option = poll.options.find(o => o.id === optionId);
+    return {
+      name: participant?.name ?? 'Anonymous',
+      optionId,
+      optionText: option?.text ?? '?',
+    };
+  });
+}
 
 function awardScores(room: ReturnType<typeof getRoom>, poll: Poll) {
   if (!room || !poll.correctOptionId) return;

@@ -28,6 +28,7 @@ interface PollResultsProps {
   myVote?: string;
   myTextResponse?: string;
   correctOptionId?: string;
+  voterDetails?: { name: string; optionId: string; optionText: string }[];
   onVote?: (optionId: string) => void;
   onTextResponse?: (text: string) => void;
   onPublish?: () => void;
@@ -77,6 +78,7 @@ export function PollResults({
   myVote,
   myTextResponse,
   correctOptionId,
+  voterDetails,
   onVote,
   onTextResponse,
   onPublish,
@@ -171,6 +173,35 @@ export function PollResults({
             </div>
             <p className="text-xs text-gray-400">{total} total votes</p>
           </div>
+
+          {/* Host: per-user answer breakdown */}
+          {isHost && !isActive && voterDetails && voterDetails.length > 0 && (
+            <div className="border-t border-gray-100 pt-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Responses ({voterDetails.length})</p>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {options.map(opt => {
+                  const voters = voterDetails.filter(v => v.optionId === opt.id);
+                  if (voters.length === 0) return null;
+                  return (
+                    <div key={opt.id} className="mb-2">
+                      <p className={`text-xs font-semibold mb-1 ${correctOptionId === opt.id ? 'text-green-600' : 'text-gray-500'}`}>
+                        {correctOptionId === opt.id ? '✓ ' : ''}{opt.text}
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {voters.map((v, i) => (
+                          <span key={i} className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            correctOptionId === opt.id ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {v.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 

@@ -44,6 +44,7 @@ export default function HostRoom() {
   const [participantList, setParticipantList] = useState<{ id: string; name: string }[]>([]);
   const [pendingPolls, setPendingPolls] = useState<QuestionData[]>([]);
   const [leaderboard, setLeaderboard] = useState<{ id: string; name: string; score: number }[]>([]);
+  const [voterDetails, setVoterDetails] = useState<Record<string, { name: string; optionId: string; optionText: string }[]>>({});
   const [tab, setTab] = useState<'polls' | 'qa'>('polls');
   const [socketId, setSocketId] = useState('');
   const initialized = useRef(false);
@@ -115,6 +116,10 @@ export default function HostRoom() {
       setLeaderboard([...leaderboard].sort((a, b) => b.score - a.score));
     });
 
+    socket.on('poll-voter-details', ({ pollId, voterDetails }: { pollId: string; voterDetails: { name: string; optionId: string; optionText: string }[] }) => {
+      setVoterDetails(prev => ({ ...prev, [pollId]: voterDetails }));
+    });
+
     socket.on('poll-closed', ({ pollId, correctOptionId }: { pollId: string; correctOptionId?: string }) => {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false, correctOptionId: correctOptionId ?? p.correctOptionId } : p));
       const next = pendingPollsRef.current[0];
@@ -162,6 +167,7 @@ export default function HostRoom() {
       socket.off('responses-published');
       socket.off('correct-answer-set');
       socket.off('leaderboard-updated');
+      socket.off('poll-voter-details');
       socket.off('poll-closed');
       socket.off('timer-started');
       socket.off('poll-revealed');
@@ -277,28 +283,21 @@ export default function HostRoom() {
 
             {pendingPolls.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-brand-500 uppercase tracking-wide mb-2">Poll Queue ({pendingPolls.length})</p>
-                <div className="space-y-2">
+                <p className="text-xs font-semibold text-brand-500 uppercase tracking-wide mb-2">Up Next ({pendingPolls.length})</p>
+                <div className="space-y-1.5">
                   {pendingPolls.map((poll, i) => (
-                    <div key={i} className="flex items-center justify-between bg-white rounded-xl shadow px-4 py-3 border border-brand-100">
+                    <div key={i} className="flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border border-gray-100 shadow-sm">
+                      <span className="text-xs text-gray-400 font-mono w-4 shrink-0">{i + 1}.</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800 truncate">{poll.question}</p>
-                        <p className="text-xs text-gray-400">{poll.pollType === 'multiple-choice' ? `${poll.options.length} options` : 'Open text'}{poll.duration > 0 ? ` · ${poll.duration >= 60 ? `${poll.duration / 60}min` : `${poll.duration}s`} timer` : ''}</p>
+                        <p className="text-xs text-gray-400">{poll.pollType === 'multiple-choice' ? `${poll.options.length} options` : 'Open text'}{poll.duration > 0 ? ` · ${poll.duration >= 60 ? `${poll.duration / 60}min` : `${poll.duration}s`}` : ''}</p>
                       </div>
-                      <div className="flex items-center gap-2 ml-3">
-                        <button
-                          onClick={() => handleLaunchPending(poll, i)}
-                          className="text-xs bg-brand-500 hover:bg-brand-600 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          Launch
-                        </button>
-                        <button
-                          onClick={() => setPendingPolls(prev => prev.filter((_, idx) => idx !== i))}
-                          className="text-gray-400 hover:text-red-500 text-lg leading-none"
-                        >
-                          ×
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => setPendingPolls(prev => prev.filter((_, idx) => idx !== i))}
+                        className="text-gray-300 hover:text-red-400 text-lg leading-none shrink-0"
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -354,6 +353,7 @@ export default function HostRoom() {
                       responsesPublished={poll.responsesPublished}
                       isHost={true}
                       correctOptionId={poll.correctOptionId}
+                      voterDetails={voterDetails[poll.id]}
                       onPublish={!poll.responsesPublished ? () => handlePublishResponses(poll.id) : undefined}
                     />
                   ))}

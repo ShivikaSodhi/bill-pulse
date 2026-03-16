@@ -48,9 +48,10 @@ export default function ParticipantRoom() {
   const [error, setError] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [joining, setJoining] = useState(false);
+  const [showJoinForm, setShowJoinForm] = useState(false);
   const [leaderboard, setLeaderboard] = useState<{ id: string; name: string; score: number }[]>([]);
   const [viewIndex, setViewIndex] = useState(0);
-  const autoAdvanceRef = useRef(true); // auto-follow latest question unless user navigated back
+  const autoAdvanceRef = useRef(true);
 
   useEffect(() => {
     const socket = getSocket();
@@ -70,6 +71,7 @@ export default function ParticipantRoom() {
     socket.on('join-error', ({ message }: { message: string }) => {
       setJoining(false);
       setError(message);
+      setShowJoinForm(true);
     });
 
     socket.on('poll-created', ({ poll }: { poll: Poll }) => {
@@ -122,10 +124,12 @@ export default function ParticipantRoom() {
 
     socket.on('participants-updated', ({ count }: { count: number }) => setParticipants(count));
 
-    // Auto-join if name is already saved (e.g. came from landing page)
-    const savedName = typeof window !== 'undefined' ? localStorage.getItem(`name:${code}`) : null;
+    // Auto-join if name is already saved, otherwise show join form
+    const savedName = localStorage.getItem(`name:${code}`);
     if (savedName) {
       socket.emit('join-room', { code, name: savedName });
+    } else {
+      setShowJoinForm(true);
     }
 
     return () => {
@@ -151,6 +155,7 @@ export default function ParticipantRoom() {
     const name = nameInput.trim();
     if (!name) return;
     localStorage.setItem(`name:${code}`, name);
+    setShowJoinForm(false);
     setJoining(true);
     setError('');
     const socket = getSocket();
@@ -187,10 +192,8 @@ export default function ParticipantRoom() {
     }));
   };
 
-  const savedName = typeof window !== 'undefined' ? localStorage.getItem(`name:${code}`) : null;
-
   // Show join form if no name saved yet (direct URL access)
-  if (!savedName && !room) {
+  if (showJoinForm && !room) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-6 space-y-4">
