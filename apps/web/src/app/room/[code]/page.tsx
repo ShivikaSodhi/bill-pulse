@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { getSocket } from '@/lib/socket';
 import { PollResults, TextResponse } from '@/components/PollResults';
@@ -49,6 +49,8 @@ export default function ParticipantRoom() {
   const [nameInput, setNameInput] = useState('');
   const [joining, setJoining] = useState(false);
   const [leaderboard, setLeaderboard] = useState<{ id: string; name: string; score: number }[]>([]);
+  const [viewIndex, setViewIndex] = useState(0);
+  const autoAdvanceRef = useRef(true); // auto-follow latest question unless user navigated back
 
   useEffect(() => {
     const socket = getSocket();
@@ -242,8 +244,20 @@ export default function ParticipantRoom() {
     );
   }
 
+  // Auto-advance to latest when a new question is revealed (unless user navigated back)
+  useEffect(() => {
+    const visible = polls.filter(p => !p.isActive || p.isRevealed);
+    if (autoAdvanceRef.current && visible.length > 0) {
+      setViewIndex(visible.length - 1);
+    }
+  }, [polls]);
+
   const activePoll = polls.find(p => p.isActive);
-  const lastClosedPoll = !activePoll ? [...polls].filter(p => !p.isActive).pop() : undefined;
+  // Polls visible to participants: closed ones + active if revealed
+  const visiblePolls = polls.filter(p => !p.isActive || p.isRevealed);
+  const clampedIndex = Math.min(viewIndex, Math.max(0, visiblePolls.length - 1));
+  const currentPoll = visiblePolls[clampedIndex];
+  const isOnLatest = clampedIndex === visiblePolls.length - 1;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -279,59 +293,78 @@ export default function ParticipantRoom() {
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
         {tab === 'polls' && (
           <>
-            {/* No polls yet */}
-            {!activePoll && !lastClosedPoll && (
+            {/* No questions revealed yet */}
+            {visiblePolls.length === 0 && (
               <div className="text-center py-20 text-gray-400">
                 <div className="text-5xl mb-3">📊</div>
-                <p className="font-medium text-gray-500">Waiting for the first question...</p>
+                {activePoll
+                  ? <><p className="font-semibold text-gray-500 text-lg">Next question coming up...</p><p className="text-sm mt-1">Stand by</p></>
+                  : <p className="font-medium text-gray-500">Waiting for the first question...</p>
+                }
               </div>
             )}
 
-            {/* Active poll – hidden from participants until revealed */}
-            {activePoll && !activePoll.isRevealed && (
-              <div className="text-center py-20">
-                <div className="text-5xl mb-4">⏳</div>
-                <p className="text-gray-600 font-semibold text-lg">Next question coming up...</p>
-                <p className="text-gray-400 text-sm mt-1">Stand by</p>
-              </div>
-            )}
-
-            {activePoll && activePoll.isRevealed && (
-              <PollResults
-                key={activePoll.id}
-                question={activePoll.question}
-                type={activePoll.type}
-                options={activePoll.options}
-                textResponses={activePoll.textResponses}
-                imageBase64={activePoll.imageBase64}
-                isActive={true}
-                isRevealed={true}
-                responsesPublished={activePoll.responsesPublished}
-                endsAt={activePoll.endsAt}
-                myVote={myVotes[activePoll.id]}
-                myTextResponse={myTextResponses[activePoll.id]}
-                onVote={(optionId) => handleVote(activePoll.id, optionId)}
-                onTextResponse={(text) => handleTextResponse(activePoll.id, text)}
-              />
-            )}
-
-            {/* Between questions: show last poll results */}
-            {lastClosedPoll && (
+            {/* Question card */}
+            {currentPoll && (
               <div className="space-y-3">
+                {/* Navigation bar */}
+                {visiblePolls.length > 1 && (
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => { autoAdvanceRef.current = false; setViewIndex(i => Math.max(0, i - 1)); }}
+                      disabled={clampedIndex === 0}
+                      className="flex items-center gap-1 text-sm font-medium text-brand-600 disabled:text-gray-300 disabled:cursor-not-allowed"
+                    >
+                      ← Prev
+                    </button>
+                    <span className="text-xs text-gray-400 font-medium">
+                      Question {clampedIndex + 1} of {visiblePolls.length}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const next = clampedIndex + 1;
+                        if (next >= visiblePolls.length) return;
+                        setViewIndex(next);
+                        if (next === visiblePolls.length - 1) autoAdvanceRef.current = true;
+                      }}
+                      disabled={clampedIndex === visiblePolls.length - 1}
+                      className="flex items-center gap-1 text-sm font-medium text-brand-600 disabled:text-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+
+                {/* Live badge when a new question is waiting */}
+                {!isOnLatest && activePoll && activePoll.isRevealed && (
+                  <button
+                    onClick={() => { autoAdvanceRef.current = true; setViewIndex(visiblePolls.length - 1); }}
+                    className="w-full text-center text-xs bg-green-50 border border-green-200 text-green-700 font-semibold py-2 rounded-lg"
+                  >
+                    ● Live question — tap to jump to it
+                  </button>
+                )}
+
                 <PollResults
-                  key={lastClosedPoll.id}
-                  question={lastClosedPoll.question}
-                  type={lastClosedPoll.type}
-                  options={lastClosedPoll.options}
-                  textResponses={lastClosedPoll.textResponses}
-                  imageBase64={lastClosedPoll.imageBase64}
-                  isActive={false}
-                  responsesPublished={lastClosedPoll.responsesPublished}
-                  correctOptionId={lastClosedPoll.correctOptionId}
-                  myVote={myVotes[lastClosedPoll.id]}
-                  myTextResponse={myTextResponses[lastClosedPoll.id]}
+                  key={currentPoll.id}
+                  question={currentPoll.question}
+                  type={currentPoll.type}
+                  options={currentPoll.options}
+                  textResponses={currentPoll.textResponses}
+                  imageBase64={currentPoll.imageBase64}
+                  isActive={currentPoll.isActive}
+                  isRevealed={currentPoll.isRevealed}
+                  responsesPublished={currentPoll.responsesPublished}
+                  endsAt={currentPoll.isActive ? currentPoll.endsAt : undefined}
+                  correctOptionId={currentPoll.correctOptionId}
+                  myVote={myVotes[currentPoll.id]}
+                  myTextResponse={myTextResponses[currentPoll.id]}
+                  onVote={currentPoll.isActive ? (optionId) => handleVote(currentPoll.id, optionId) : undefined}
+                  onTextResponse={currentPoll.isActive ? (text) => handleTextResponse(currentPoll.id, text) : undefined}
                 />
-                {leaderboard.length > 0 && (
+
+                {/* Leaderboard (shown after any scored question closes) */}
+                {!currentPoll.isActive && leaderboard.length > 0 && isOnLatest && (
                   <div className="bg-white rounded-xl shadow p-4">
                     <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-2">🏆 Leaderboard</p>
                     <div className="space-y-1.5">
@@ -347,7 +380,10 @@ export default function ParticipantRoom() {
                     </div>
                   </div>
                 )}
-                <p className="text-center text-sm text-gray-400">Waiting for next question...</p>
+
+                {isOnLatest && !currentPoll.isActive && (
+                  <p className="text-center text-sm text-gray-400">Waiting for next question...</p>
+                )}
               </div>
             )}
           </>
