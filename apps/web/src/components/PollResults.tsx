@@ -22,6 +22,7 @@ interface PollResultsProps {
   isActive: boolean;
   responsesPublished?: boolean;
   isHost?: boolean;
+  duration?: number;
   endsAt?: number;
   myVote?: string;
   myTextResponse?: string;
@@ -29,6 +30,7 @@ interface PollResultsProps {
   onTextResponse?: (text: string) => void;
   onPublish?: () => void;
   onClose?: () => void;
+  onStartTimer?: () => void;
 }
 
 function Countdown({ endsAt }: { endsAt: number }) {
@@ -67,6 +69,7 @@ export function PollResults({
   isActive,
   responsesPublished = false,
   isHost = false,
+  duration,
   endsAt,
   myVote,
   myTextResponse,
@@ -74,6 +77,7 @@ export function PollResults({
   onTextResponse,
   onPublish,
   onClose,
+  onStartTimer,
 }: PollResultsProps) {
   const [inputText, setInputText] = useState('');
   const total = options.reduce((s, o) => s + o.votes, 0);
@@ -230,15 +234,25 @@ export function PollResults({
         </div>
       )}
 
-      {/* Host close button */}
-      {isHost && isActive && onClose && (
-        <div className="flex justify-end pt-1 border-t border-gray-100">
-          <button
-            onClick={onClose}
-            className="text-xs text-red-500 hover:text-red-700 font-medium border border-red-200 px-2 py-1 rounded"
-          >
-            Close Poll
-          </button>
+      {/* Host controls */}
+      {isHost && isActive && (onClose || onStartTimer) && (
+        <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+          {isHost && isActive && duration && duration > 0 && !endsAt && onStartTimer ? (
+            <button
+              onClick={onStartTimer}
+              className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >
+              ▶ Begin Timer ({duration >= 60 ? `${duration / 60}min` : `${duration}s`})
+            </button>
+          ) : <span />}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="text-xs text-red-500 hover:text-red-700 font-medium border border-red-200 px-2 py-1 rounded"
+            >
+              Close Poll
+            </button>
+          )}
         </div>
       )}
     </div>

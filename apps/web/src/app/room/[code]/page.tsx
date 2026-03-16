@@ -77,6 +77,10 @@ export default function ParticipantRoom() {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false } : p));
     });
 
+    socket.on('timer-started', ({ pollId, endsAt }: { pollId: string; endsAt: number }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, endsAt } : p));
+    });
+
     socket.on('question-added', ({ question }: { question: Question }) => {
       setQuestions(prev => [...prev, question]);
     });
@@ -112,6 +116,7 @@ export default function ParticipantRoom() {
       socket.off('poll-created');
       socket.off('vote-update');
       socket.off('poll-closed');
+      socket.off('timer-started');
       socket.off('question-added');
       socket.off('question-upvoted');
       socket.off('question-archived');

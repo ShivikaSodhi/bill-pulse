@@ -44,7 +44,6 @@ io.on('connection', (socket) => {
     socket.data.roomCode = room.code;
     socket.data.isHost = true;
     socket.data.name = hostName;
-    room.participants++;
     socket.emit('room-created', { code: room.code, hostKey: room.hostKey, room: serializeRoom(room) });
   });
 
@@ -96,22 +95,28 @@ io.on('connection', (socket) => {
       isActive: true,
       responsesPublished: false,
       duration,
-      endsAt: duration > 0 ? now + duration * 1000 : undefined,
+      endsAt: undefined,
       createdAt: now,
     };
     room.polls.push(poll);
     io.to(room.code).emit('poll-created', { poll });
+  });
 
-    if (duration > 0) {
-      setTimeout(() => {
-        const r = getRoom(room.code);
-        const p = r?.polls.find(p => p.id === poll.id);
-        if (p && p.isActive) {
-          p.isActive = false;
-          io.to(room.code).emit('poll-closed', { pollId: poll.id });
-        }
-      }, duration * 1000);
-    }
+  socket.on('start-timer', ({ pollId }: { pollId: string }) => {
+    const room = getRoom(socket.data.roomCode);
+    if (!room || !socket.data.isHost) return;
+    const poll = room.polls.find(p => p.id === pollId);
+    if (!poll || !poll.isActive || poll.duration === 0 || poll.endsAt) return;
+    poll.endsAt = Date.now() + poll.duration * 1000;
+    io.to(room.code).emit('timer-started', { pollId, endsAt: poll.endsAt });
+    setTimeout(() => {
+      const r = getRoom(room.code);
+      const p = r?.polls.find(p => p.id === pollId);
+      if (p && p.isActive) {
+        p.isActive = false;
+        io.to(room.code).emit('poll-closed', { pollId });
+      }
+    }, poll.duration * 1000);
   });
 
   socket.on('publish-responses', ({ pollId }: { pollId: string }) => {

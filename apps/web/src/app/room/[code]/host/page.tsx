@@ -23,6 +23,7 @@ interface Poll {
   responsesPublished: boolean;
   duration: number;
   endsAt?: number;
+  timerStarted?: boolean;
 }
 
 interface Room {
@@ -89,6 +90,10 @@ export default function HostRoom() {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false } : p));
     });
 
+    socket.on('timer-started', ({ pollId, endsAt }: { pollId: string; endsAt: number }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, endsAt, timerStarted: true } : p));
+    });
+
     socket.on('question-added', ({ question }: { question: Question }) => {
       setQuestions(prev => [...prev, question]);
     });
@@ -115,6 +120,7 @@ export default function HostRoom() {
       socket.off('text-response-added');
       socket.off('responses-published');
       socket.off('poll-closed');
+      socket.off('timer-started');
       socket.off('question-added');
       socket.off('question-upvoted');
       socket.off('question-archived');
@@ -137,6 +143,10 @@ export default function HostRoom() {
 
   const handleClosePoll = (pollId: string) => {
     getSocket().emit('close-poll', { pollId });
+  };
+
+  const handleStartTimer = (pollId: string) => {
+    getSocket().emit('start-timer', { pollId });
   };
 
   const handlePublishResponses = (pollId: string) => {
@@ -194,6 +204,17 @@ export default function HostRoom() {
       <div className="max-w-2xl mx-auto px-4 pt-5 space-y-5">
         {tab === 'polls' && (
           <>
+            <div className="flex items-center gap-3 bg-white rounded-xl shadow px-4 py-3 border border-gray-100">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </span>
+              <span className="text-sm font-medium text-gray-700">
+                <span className="text-2xl font-bold text-gray-900 mr-1">{participants}</span>
+                participant{participants !== 1 ? 's' : ''} joined
+              </span>
+            </div>
+
             <CreatePoll onCreatePoll={handleCreatePoll} />
 
             {pendingPolls.length > 0 && (
@@ -238,9 +259,11 @@ export default function HostRoom() {
                   isActive={true}
                   responsesPublished={activePoll.responsesPublished}
                   isHost={true}
+                  duration={activePoll.duration}
                   endsAt={activePoll.endsAt}
                   onClose={() => handleClosePoll(activePoll.id)}
                   onPublish={() => handlePublishResponses(activePoll.id)}
+                  onStartTimer={!activePoll.endsAt && activePoll.duration > 0 ? () => handleStartTimer(activePoll.id) : undefined}
                 />
               </div>
             )}
