@@ -44,7 +44,15 @@ export default function ParticipantRoom() {
   const [myTextResponses, setMyTextResponses] = useState<Record<string, string>>({});
   const [socketId, setSocketId] = useState<string>('');
   const [error, setError] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [joining, setJoining] = useState(false);
   const initialized = useRef(false);
+
+  const doJoin = (name: string) => {
+    const socket = getSocket();
+    if (!socket.connected) socket.connect();
+    socket.emit('join-room', { code, name });
+  };
 
   useEffect(() => {
     if (initialized.current) return;
@@ -57,13 +65,17 @@ export default function ParticipantRoom() {
     socket.on('connect', () => setSocketId(socket.id || ''));
 
     socket.on('room-joined', ({ room }: { room: Room }) => {
+      setJoining(false);
       setRoom(room);
       setPolls(room.polls);
       setQuestions(room.questions);
       setParticipants(room.participants);
     });
 
-    socket.on('join-error', ({ message }: { message: string }) => setError(message));
+    socket.on('join-error', ({ message }: { message: string }) => {
+      setJoining(false);
+      setError(message);
+    });
 
     socket.on('poll-created', ({ poll }: { poll: Poll }) => {
       setPolls(prev => [...prev.map(p => ({ ...p, isActive: false })), { ...poll, textResponses: poll.textResponses ?? [] }]);
@@ -107,8 +119,11 @@ export default function ParticipantRoom() {
 
     socket.on('participants-updated', ({ count }: { count: number }) => setParticipants(count));
 
-    const name = typeof window !== 'undefined' ? (localStorage.getItem(`name:${code}`) || 'Anonymous') : 'Anonymous';
-    socket.emit('join-room', { code, name });
+    const savedName = typeof window !== 'undefined' ? localStorage.getItem(`name:${code}`) : null;
+    if (savedName) {
+      doJoin(savedName);
+    }
+    // if no savedName, the join form will be shown
 
     return () => {
       socket.off('room-joined');
@@ -125,7 +140,17 @@ export default function ParticipantRoom() {
       socket.off('participants-updated');
       socket.off('connect');
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code]);
+
+  const handleJoinSubmit = () => {
+    const name = nameInput.trim();
+    if (!name) return;
+    localStorage.setItem(`name:${code}`, name);
+    setJoining(true);
+    setError('');
+    doJoin(name);
+  };
 
   const handleVote = (pollId: string, optionId: string) => {
     getSocket().emit('vote', { pollId, optionId });

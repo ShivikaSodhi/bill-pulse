@@ -62,8 +62,11 @@ io.on('connection', (socket) => {
     if (isHost) room.hostId = socket.id;
 
     if (!isHost) {
-      room.participants++;
-      room.participantList.push({ id: socket.id, name });
+      const alreadyJoined = room.participantList.some(p => p.id === socket.id);
+      if (!alreadyJoined) {
+        room.participants++;
+        room.participantList.push({ id: socket.id, name });
+      }
     }
 
     socket.emit('room-joined', { room: serializeRoom(room) });
