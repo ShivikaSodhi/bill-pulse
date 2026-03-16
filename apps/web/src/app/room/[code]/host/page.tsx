@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { getSocket } from '@/lib/socket';
 import { PollResults, TextResponse } from '@/components/PollResults';
-import { CreatePoll } from '@/components/CreatePoll';
+import { CreatePoll, QuestionData } from '@/components/CreatePoll';
 import { QuestionList, Question } from '@/components/QuestionList';
 
 interface PollOption {
@@ -38,6 +38,7 @@ export default function HostRoom() {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [participants, setParticipants] = useState(0);
+  const [pendingPolls, setPendingPolls] = useState<QuestionData[]>([]);
   const [tab, setTab] = useState<'polls' | 'qa'>('polls');
   const [socketId, setSocketId] = useState('');
   const initialized = useRef(false);
@@ -103,7 +104,8 @@ export default function HostRoom() {
     socket.on('participant-count', ({ count }: { count: number }) => setParticipants(count));
 
     const name = typeof window !== 'undefined' ? (localStorage.getItem(`name:${code}`) || 'Host') : 'Host';
-    socket.emit('join-room', { code, name });
+    const hostKey = typeof window !== 'undefined' ? (localStorage.getItem(`hostKey:${code}`) ?? undefined) : undefined;
+    socket.emit('join-room', { code, name, hostKey });
 
     return () => {
       socket.off('room-joined');
@@ -121,8 +123,16 @@ export default function HostRoom() {
     };
   }, [code]);
 
-  const handleCreatePoll = (question: string, type: 'multiple-choice' | 'open-text', options: string[], imageBase64?: string, duration = 0) => {
-    getSocket().emit('create-poll', { question, type, options, imageBase64, duration });
+  const handleCreatePoll = (questions: QuestionData[]) => {
+    if (questions.length === 0) return;
+    const [first, ...rest] = questions;
+    getSocket().emit('create-poll', { question: first.question, type: first.pollType, options: first.options, imageBase64: first.imageBase64, duration: first.duration });
+    if (rest.length > 0) setPendingPolls(prev => [...prev, ...rest]);
+  };
+
+  const handleLaunchPending = (poll: QuestionData, index: number) => {
+    getSocket().emit('create-poll', { question: poll.question, type: poll.pollType, options: poll.options, imageBase64: poll.imageBase64, duration: poll.duration });
+    setPendingPolls(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleClosePoll = (pollId: string) => {
@@ -185,6 +195,36 @@ export default function HostRoom() {
         {tab === 'polls' && (
           <>
             <CreatePoll onCreatePoll={handleCreatePoll} />
+
+            {pendingPolls.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-brand-500 uppercase tracking-wide mb-2">Poll Queue ({pendingPolls.length})</p>
+                <div className="space-y-2">
+                  {pendingPolls.map((poll, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white rounded-xl shadow px-4 py-3 border border-brand-100">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{poll.question}</p>
+                        <p className="text-xs text-gray-400">{poll.pollType === 'multiple-choice' ? `${poll.options.length} options` : 'Open text'}{poll.duration > 0 ? ` · ${poll.duration >= 60 ? `${poll.duration / 60}min` : `${poll.duration}s`} timer` : ''}</p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <button
+                          onClick={() => handleLaunchPending(poll, i)}
+                          className="text-xs bg-brand-500 hover:bg-brand-600 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Launch
+                        </button>
+                        <button
+                          onClick={() => setPendingPolls(prev => prev.filter((_, idx) => idx !== i))}
+                          className="text-gray-400 hover:text-red-500 text-lg leading-none"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {activePoll && (
               <div>

@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import { Room } from './types';
 
 const rooms = new Map<string, Room>();
@@ -20,6 +21,7 @@ export function createRoom(hostId: string, hostName: string, title: string): Roo
   const room: Room = {
     code,
     hostId,
+    hostKey: uuidv4(),
     hostName,
     title,
     polls: [],

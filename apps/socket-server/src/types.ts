@@ -37,6 +37,7 @@ export interface Question {
 export interface Room {
   code: string;
   hostId: string;
+  hostKey: string;
   hostName: string;
   title: string;
   polls: Poll[];

@@ -32,11 +32,7 @@ app.get('/room/:code', (req, res) => {
     res.status(404).json({ error: 'Room not found' });
     return;
   }
-  const serialized = {
-    ...room,
-    questions: room.questions.map(q => ({ ...q, upvotedBy: Array.from(q.upvotedBy) })),
-  };
-  res.json(serialized);
+  res.json(serializeRoom(room));
 });
 
 io.on('connection', (socket) => {
@@ -49,10 +45,10 @@ io.on('connection', (socket) => {
     socket.data.isHost = true;
     socket.data.name = hostName;
     room.participants++;
-    socket.emit('room-created', { code: room.code, room: serializeRoom(room) });
+    socket.emit('room-created', { code: room.code, hostKey: room.hostKey, room: serializeRoom(room) });
   });
 
-  socket.on('join-room', ({ code, name }: { code: string; name: string }) => {
+  socket.on('join-room', ({ code, name, hostKey }: { code: string; name: string; hostKey?: string }) => {
     const room = getRoom(code);
     if (!room) {
       socket.emit('join-error', { message: 'Room not found' });
@@ -60,8 +56,12 @@ io.on('connection', (socket) => {
     }
     socket.join(room.code);
     socket.data.roomCode = room.code;
-    socket.data.isHost = room.hostId === socket.id;
     socket.data.name = name;
+
+    const isHost = hostKey ? hostKey === room.hostKey : room.hostId === socket.id;
+    socket.data.isHost = isHost;
+    if (isHost) room.hostId = socket.id;
+
     room.participants++;
     socket.emit('room-joined', { room: serializeRoom(room) });
     io.to(room.code).emit('participant-count', { count: room.participants });
@@ -81,7 +81,7 @@ io.on('connection', (socket) => {
     duration: number;
   }) => {
     const room = getRoom(socket.data.roomCode);
-    if (!room || room.hostId !== socket.id) return;
+    if (!room || !socket.data.isHost) return;
 
     room.polls.forEach(p => { p.isActive = false; });
 
@@ -116,7 +116,7 @@ io.on('connection', (socket) => {
 
   socket.on('publish-responses', ({ pollId }: { pollId: string }) => {
     const room = getRoom(socket.data.roomCode);
-    if (!room || room.hostId !== socket.id) return;
+    if (!room || !socket.data.isHost) return;
     const poll = room.polls.find(p => p.id === pollId);
     if (!poll || poll.type !== 'open-text') return;
     poll.responsesPublished = true;
@@ -167,7 +167,7 @@ io.on('connection', (socket) => {
 
   socket.on('close-poll', ({ pollId }: { pollId: string }) => {
     const room = getRoom(socket.data.roomCode);
-    if (!room || room.hostId !== socket.id) return;
+    if (!room || !socket.data.isHost) return;
     const poll = room.polls.find(p => p.id === pollId);
     if (poll) {
       poll.isActive = false;
@@ -217,7 +217,7 @@ io.on('connection', (socket) => {
 
   socket.on('archive-question', ({ questionId }: { questionId: string }) => {
     const room = getRoom(socket.data.roomCode);
-    if (!room || room.hostId !== socket.id) return;
+    if (!room || !socket.data.isHost) return;
     room.questions = room.questions.filter(q => q.id !== questionId);
     io.to(room.code).emit('question-archived', { questionId });
   });
@@ -233,8 +233,10 @@ io.on('connection', (socket) => {
 
 function serializeRoom(room: ReturnType<typeof getRoom>) {
   if (!room) return null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { hostKey, ...rest } = room;
   return {
-    ...room,
+    ...rest,
     questions: room.questions.map(q => ({ ...q, upvotedBy: Array.from(q.upvotedBy) })),
   };
 }

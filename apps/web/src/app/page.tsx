@@ -19,8 +19,9 @@ export default function Home() {
     setError('');
     const socket = getSocket();
     socket.connect();
-    socket.once('room-created', ({ code }: { code: string }) => {
+    socket.once('room-created', ({ code, hostKey }: { code: string; hostKey: string }) => {
       localStorage.setItem(`host:${code}`, '1');
+      localStorage.setItem(`hostKey:${code}`, hostKey);
       localStorage.setItem(`name:${code}`, hostName);
       router.push(`/room/${code}/host`);
     });
