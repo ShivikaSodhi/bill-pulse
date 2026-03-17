@@ -3,12 +3,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSocket } from '@/lib/socket';
 
-const FEATURES = [
-  { icon: '📊', label: 'Real-time polls & results' },
-  { icon: '🙋', label: 'Live Q&A with upvotes' },
-  { icon: '🏆', label: 'Quiz mode with leaderboard' },
-  { icon: '⏱', label: 'Timed questions & auto-advance' },
-];
 
 export default function Home() {
   const router = useRouter();
@@ -57,53 +51,28 @@ export default function Home() {
     <main className="min-h-screen flex flex-col lg:flex-row">
 
       {/* ── Left panel: brand ── */}
-      <div className="relative lg:w-[52%] bg-mesh flex flex-col justify-between p-8 lg:p-14 overflow-hidden min-h-[280px] lg:min-h-screen">
-        {/* Decorative blobs */}
-        <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-brand-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 right-0 w-72 h-72 rounded-full bg-brand-600/15 blur-3xl" />
-
+      <div className="hidden lg:flex lg:w-[48%] bg-[#0f0f0f] flex-col justify-between p-14 min-h-screen border-r border-white/5">
         {/* Logo */}
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/40">
-              <span className="text-white text-lg font-black leading-none">B</span>
-            </div>
-            <span className="text-white font-bold text-xl tracking-tight">Bill Pulse</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
+            <span className="text-white text-sm font-bold leading-none">B</span>
           </div>
+          <span className="text-white/90 font-semibold text-base tracking-tight">Bill Pulse</span>
         </div>
 
-        {/* Hero copy */}
-        <div className="relative z-10 mt-12 lg:mt-0">
-          <div className="inline-flex items-center gap-2 bg-brand-500/20 border border-brand-500/30 rounded-full px-3 py-1 mb-6">
-            <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
-            <span className="text-brand-300 text-xs font-semibold uppercase tracking-wider">Live audience engagement</span>
-          </div>
-
-          <h1 className="text-4xl lg:text-5xl xl:text-6xl font-black text-white leading-[1.1] tracking-tight mb-5">
-            Run polls your<br />
-            <span className="text-brand-400">audience loves.</span>
+        {/* Center copy */}
+        <div>
+          <p className="text-white/30 text-xs font-medium uppercase tracking-widest mb-6">Live polling</p>
+          <h1 className="text-4xl font-semibold text-white leading-snug tracking-tight mb-4">
+            Ask your audience.<br />See answers instantly.
           </h1>
-          <p className="text-white/60 text-base lg:text-lg max-w-sm leading-relaxed">
-            Interactive polls, Q&A, and quizzes — all updating live as your audience responds.
+          <p className="text-white/40 text-sm leading-relaxed max-w-xs">
+            Polls, open-ended questions, and Q&A — no logins, no friction.
           </p>
-
-          {/* Feature list */}
-          <div className="mt-10 grid grid-cols-2 gap-3">
-            {FEATURES.map(f => (
-              <div key={f.label} className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-base">
-                  {f.icon}
-                </div>
-                <span className="text-white/70 text-sm font-medium leading-tight">{f.label}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
-        {/* Bottom tagline */}
-        <div className="relative z-10 mt-10 lg:mt-0">
-          <p className="text-white/30 text-xs">No account needed · Free to use</p>
-        </div>
+        {/* Footer */}
+        <p className="text-white/20 text-xs">No account needed</p>
       </div>
 
       {/* ── Right panel: form ── */}
@@ -111,13 +80,11 @@ export default function Home() {
         <div className="w-full max-w-[380px]">
 
           {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center">
-                <span className="text-white text-base font-black">B</span>
-              </div>
-              <span className="text-gray-900 font-bold text-xl">Bill Pulse</span>
+          <div className="lg:hidden flex items-center gap-2 mb-8">
+            <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
+              <span className="text-white text-sm font-bold leading-none">B</span>
             </div>
+            <span className="text-gray-900 font-semibold text-base tracking-tight">Bill Pulse</span>
           </div>
 
           <div className="mb-6">
