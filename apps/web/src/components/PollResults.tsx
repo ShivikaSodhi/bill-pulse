@@ -37,12 +37,12 @@ interface PollResultsProps {
 }
 
 const OPTION_COLORS = [
-  { btn: 'bg-red-500 hover:bg-red-400 active:bg-red-600 shadow-red-500/25',    result: 'border-red-500/30 bg-red-500/10',    bar: 'bg-red-500',    letter: 'A' },
-  { btn: 'bg-blue-500 hover:bg-blue-400 active:bg-blue-600 shadow-blue-500/25', result: 'border-blue-500/30 bg-blue-500/10',   bar: 'bg-blue-500',   letter: 'B' },
-  { btn: 'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 shadow-emerald-500/25', result: 'border-emerald-500/30 bg-emerald-500/10', bar: 'bg-emerald-500', letter: 'C' },
-  { btn: 'bg-amber-500 hover:bg-amber-400 active:bg-amber-600 shadow-amber-500/25',   result: 'border-amber-500/30 bg-amber-500/10',   bar: 'bg-amber-500',   letter: 'D' },
-  { btn: 'bg-purple-500 hover:bg-purple-400 active:bg-purple-600 shadow-purple-500/25', result: 'border-purple-500/30 bg-purple-500/10', bar: 'bg-purple-500', letter: 'E' },
-  { btn: 'bg-pink-500 hover:bg-pink-400 active:bg-pink-600 shadow-pink-500/25',   result: 'border-pink-500/30 bg-pink-500/10',   bar: 'bg-pink-500',   letter: 'F' },
+  { btn: 'bg-pink-400 hover:bg-pink-300 active:bg-pink-500 shadow-pink-400/25',       result: 'border-pink-200 bg-pink-50',     bar: 'bg-pink-400',    letter: 'A' },
+  { btn: 'bg-violet-400 hover:bg-violet-300 active:bg-violet-500 shadow-violet-400/25', result: 'border-violet-200 bg-violet-50', bar: 'bg-violet-400',  letter: 'B' },
+  { btn: 'bg-rose-400 hover:bg-rose-300 active:bg-rose-500 shadow-rose-400/25',         result: 'border-rose-200 bg-rose-50',     bar: 'bg-rose-400',    letter: 'C' },
+  { btn: 'bg-purple-400 hover:bg-purple-300 active:bg-purple-500 shadow-purple-400/25', result: 'border-purple-200 bg-purple-50', bar: 'bg-purple-400',  letter: 'D' },
+  { btn: 'bg-fuchsia-400 hover:bg-fuchsia-300 active:bg-fuchsia-500 shadow-fuchsia-400/25', result: 'border-fuchsia-200 bg-fuchsia-50', bar: 'bg-fuchsia-400', letter: 'E' },
+  { btn: 'bg-indigo-400 hover:bg-indigo-300 active:bg-indigo-500 shadow-indigo-400/25', result: 'border-indigo-200 bg-indigo-50', bar: 'bg-indigo-400',  letter: 'F' },
 ];
 
 function Countdown({ endsAt }: { endsAt: number }) {
@@ -63,8 +63,8 @@ function Countdown({ endsAt }: { endsAt: number }) {
   return (
     <span className={`font-mono font-bold text-sm px-2.5 py-1 rounded-lg border ${
       urgent
-        ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
-        : 'bg-white/10 text-white/70 border-white/20'
+        ? 'bg-red-50 text-red-600 border-red-200 animate-pulse'
+        : 'bg-pink-50 text-pink-600 border-pink-200'
     }`}>
       {display}
     </span>
@@ -88,14 +88,14 @@ function TimerBar({ endsAt, duration }: { endsAt: number; duration: number }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-white/30 font-medium uppercase tracking-widest">Time left</span>
-        <span className={`font-mono font-black text-base ${urgent ? 'text-red-400 animate-pulse' : 'text-white/70'}`}>
+        <span className="text-xs text-gray-400 font-medium uppercase tracking-widest">Time left</span>
+        <span className={`font-mono font-black text-base ${urgent ? 'text-red-500 animate-pulse' : 'text-pink-600'}`}>
           {Math.ceil(remaining)}s
         </span>
       </div>
-      <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-pink-100 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-100 ${urgent ? 'bg-red-500' : 'bg-brand-500'}`}
+          className={`h-full rounded-full transition-all duration-100 ${urgent ? 'bg-red-500' : 'bg-pink-500'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -152,23 +152,23 @@ export function PollResults({
   const sortedResponses = [...visibleResponses].sort((a, b) => a.createdAt - b.createdAt);
 
   return (
-    <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl overflow-hidden">
+    <div className="bg-white border-2 border-pink-100 rounded-3xl overflow-hidden shadow-lg shadow-pink-100/60">
 
       {/* ── Header bar ── */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-pink-100 bg-pink-50/50">
         <div className="flex items-center gap-3">
           {questionNumber != null && totalQuestions != null && (
-            <span className="text-xs font-bold text-white/40 tracking-widest uppercase">
+            <span className="text-xs font-bold text-pink-400 tracking-widest uppercase">
               Q{questionNumber}
-              <span className="text-white/20"> / {totalQuestions}</span>
+              <span className="text-pink-300"> / {totalQuestions}</span>
             </span>
           )}
           <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${
             isActive
-              ? 'bg-green-500/15 text-green-400 border-green-500/30'
-              : 'bg-white/5 text-white/25 border-white/10'
+              ? 'bg-pink-50 text-pink-600 border-pink-200'
+              : 'bg-gray-50 text-gray-400 border-gray-200'
           }`}>
-            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse" />}
             {isActive ? 'LIVE' : 'CLOSED'}
           </span>
         </div>
@@ -181,21 +181,21 @@ export function PollResults({
                 <button
                   onClick={onEdit}
                   title="Edit question"
-                  className="text-white/25 hover:text-white/70 p-1.5 rounded-lg hover:bg-white/5 transition-colors text-sm"
+                  className="text-gray-300 hover:text-pink-500 p-1.5 rounded-lg hover:bg-pink-50 transition-colors text-sm"
                 >✏️</button>
               )}
               {onUnpublish && (
                 <button
                   onClick={onUnpublish}
                   title="Reset all responses and reverse scores"
-                  className="text-xs text-brand-400 hover:text-brand-300 font-bold border border-brand-500/30 hover:border-brand-400/50 px-2.5 py-1 rounded-lg transition-colors"
+                  className="text-xs text-brand-600 hover:text-brand-700 font-bold border border-brand-200 hover:border-brand-400 px-2.5 py-1 rounded-lg transition-colors bg-brand-50"
                 >Reset</button>
               )}
               {onDelete && (
                 <button
                   onClick={onDelete}
                   title="Delete poll"
-                  className="text-white/25 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors text-sm"
+                  className="text-gray-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors text-sm"
                 >🗑</button>
               )}
             </div>
@@ -208,18 +208,18 @@ export function PollResults({
         {/* Image */}
         {imageBase64 && (isRevealed || isHost) && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageBase64} alt="poll" className="w-full max-h-56 object-cover rounded-xl border border-white/10" />
+          <img src={imageBase64} alt="poll" className="w-full max-h-56 object-cover rounded-2xl border border-pink-100" />
         )}
         {imageBase64 && !isRevealed && !isHost && (
-          <div className="w-full h-20 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
-            <span className="text-sm text-white/25">Image hidden until revealed</span>
+          <div className="w-full h-20 bg-pink-50 rounded-2xl border border-pink-100 flex items-center justify-center">
+            <span className="text-sm text-pink-300">Image hidden until revealed</span>
           </div>
         )}
 
-        {/* Question text */}
-        <h3 className="text-xl font-bold text-white leading-snug">{question}</h3>
+        {/* Question text — big! */}
+        <h3 className="text-3xl font-bold text-gray-900 leading-snug">{question}</h3>
 
-        {/* Timer progress bar — shown for both host and participants */}
+        {/* Timer progress bar */}
         {isActive && endsAt && duration && duration > 0 && (
           <TimerBar endsAt={endsAt} duration={duration} />
         )}
@@ -238,7 +238,7 @@ export function PollResults({
                       onClick={() => onVote!(option.id)}
                       className={`${c.btn} rounded-2xl p-4 text-left shadow-lg transition-all duration-150 active:scale-95 min-h-[4.5rem]`}
                     >
-                      <div className="w-7 h-7 rounded-lg bg-black/25 flex items-center justify-center font-black text-white text-xs mb-3">
+                      <div className="w-7 h-7 rounded-lg bg-black/20 flex items-center justify-center font-black text-white text-xs mb-3">
                         {c.letter}
                       </div>
                       <p className="text-white font-bold text-sm leading-snug">{option.text}</p>
@@ -259,27 +259,27 @@ export function PollResults({
                       key={option.id}
                       className={`relative rounded-2xl p-4 border overflow-hidden min-h-[4.5rem] ${
                         isCorrect
-                          ? 'border-green-400/50 bg-green-500/10'
-                          : `${c.result} ${voted ? 'ring-1 ring-white/20' : ''}`
+                          ? 'border-green-300 bg-green-50'
+                          : `${c.result} ${voted ? 'ring-2 ring-pink-300' : ''}`
                       }`}
                     >
                       {/* Bar fill */}
                       <div
-                        className={`absolute inset-y-0 left-0 ${isCorrect ? 'bg-green-500' : c.bar} opacity-20 transition-all duration-700`}
+                        className={`absolute inset-y-0 left-0 ${isCorrect ? 'bg-green-400' : c.bar} opacity-20 transition-all duration-700`}
                         style={{ width: `${pct}%` }}
                       />
                       <div className="relative">
                         <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs mb-2 text-white ${
-                          isCorrect ? 'bg-green-500' : `${c.bar} opacity-80`
+                          isCorrect ? 'bg-green-500' : `${c.bar}`
                         }`}>
                           {isCorrect ? '✓' : c.letter}
                         </div>
                         <p className={`text-sm font-bold leading-snug ${
-                          isCorrect ? 'text-green-300' : voted ? 'text-white' : 'text-white/55'
+                          isCorrect ? 'text-green-700' : voted ? 'text-gray-900' : 'text-gray-500'
                         }`}>
                           {option.text}
                         </p>
-                        <p className={`text-xs mt-1 font-mono ${isCorrect ? 'text-green-400/70' : 'text-white/30'}`}>
+                        <p className={`text-xs mt-1 font-mono ${isCorrect ? 'text-green-600' : 'text-gray-400'}`}>
                           {pct}% · {option.votes}
                         </p>
                       </div>
@@ -294,17 +294,17 @@ export function PollResults({
               <div>
                 {!isActive && correctOptionId && myVote && (
                   myVote === correctOptionId
-                    ? <span className="text-sm font-black text-green-400">+1000 pts ✓</span>
-                    : <span className="text-sm font-bold text-red-400">Incorrect</span>
+                    ? <span className="text-sm font-black text-green-600">+1000 pts ✓</span>
+                    : <span className="text-sm font-bold text-red-500">Incorrect</span>
                 )}
               </div>
-              <p className="text-xs text-white/25">{total} vote{total !== 1 ? 's' : ''}</p>
+              <p className="text-xs text-gray-400">{total} vote{total !== 1 ? 's' : ''}</p>
             </div>
 
             {/* Host voter breakdown */}
             {isHost && !isActive && voterDetails && voterDetails.length > 0 && (
-              <div className="border-t border-white/10 pt-4 space-y-3">
-                <p className="text-xs font-bold text-white/30 uppercase tracking-widest">
+              <div className="border-t border-pink-100 pt-4 space-y-3">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                   Responses — fastest first
                 </p>
                 <div className="space-y-3 max-h-52 overflow-y-auto">
@@ -315,15 +315,15 @@ export function PollResults({
                     const isCorrectOpt = correctOptionId === opt.id;
                     return (
                       <div key={opt.id}>
-                        <p className={`text-xs font-bold mb-1.5 ${isCorrectOpt ? 'text-green-400' : 'text-white/40'}`}>
+                        <p className={`text-xs font-bold mb-1.5 ${isCorrectOpt ? 'text-green-600' : 'text-gray-500'}`}>
                           {isCorrectOpt ? '✓ ' : ''}{opt.text}
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {voters.map((v, j) => (
                             <span key={j} className={`text-xs px-2 py-0.5 rounded-full font-medium border flex items-center gap-1 ${
                               isCorrectOpt
-                                ? 'bg-green-500/15 text-green-300 border-green-500/25'
-                                : `${c.result} text-white/50`
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : `${c.result} text-gray-600`
                             }`}>
                               {v.name}
                               {v.responseTime != null && (
@@ -347,13 +347,13 @@ export function PollResults({
             {/* Participant input */}
             {!isHost && isActive && (
               myTextResponse ? (
-                <div className="bg-brand-500/10 border border-brand-500/30 rounded-xl px-4 py-3 text-sm text-brand-300">
-                  Your answer: <span className="font-bold text-brand-200">{myTextResponse}</span>
+                <div className="bg-pink-50 border border-pink-200 rounded-xl px-4 py-3 text-sm text-pink-700">
+                  Your answer: <span className="font-bold text-pink-800">{myTextResponse}</span>
                 </div>
               ) : (
                 <div className="flex gap-2">
                   <input
-                    className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                    className="flex-1 bg-gray-50 border border-pink-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all"
                     placeholder="Type your answer..."
                     value={inputText}
                     onChange={e => setInputText(e.target.value)}
@@ -372,18 +372,18 @@ export function PollResults({
             )}
 
             {!isHost && isActive && myTextResponse && (
-              <p className="text-sm text-white/30 text-center">Waiting for host to close & publish...</p>
+              <p className="text-sm text-gray-400 text-center">Waiting for host to close & publish...</p>
             )}
 
             {/* Participant score result after close */}
             {!isHost && !isActive && myTextResponseId && (
               scoredResponseIds.includes(myTextResponseId)
-                ? <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3">
-                    <span className="text-green-400 font-black text-sm">+1000 pts</span>
-                    <span className="text-green-300 text-sm">Your answer matched!</span>
+                ? <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                    <span className="text-green-600 font-black text-sm">+1000 pts</span>
+                    <span className="text-green-700 text-sm">Your answer matched!</span>
                   </div>
                 : myTextResponse
-                  ? <p className="text-sm text-white/30 text-center py-1">No match this round</p>
+                  ? <p className="text-sm text-gray-400 text-center py-1">No match this round</p>
                   : null
             )}
 
@@ -391,16 +391,16 @@ export function PollResults({
             {isHost && (
               <div className="space-y-2">
                 {correctAnswer && (
-                  <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/30 rounded-xl px-4 py-2.5">
-                    <span className="text-xs font-bold text-brand-400 shrink-0 uppercase tracking-widest">Answer:</span>
-                    <span className="text-sm text-brand-200 font-semibold">{correctAnswer}</span>
+                  <div className="flex items-center gap-2 bg-pink-50 border border-pink-200 rounded-xl px-4 py-2.5">
+                    <span className="text-xs font-bold text-pink-500 shrink-0 uppercase tracking-widest">Answer:</span>
+                    <span className="text-sm text-pink-800 font-semibold">{correctAnswer}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/40">
+                  <span className="text-sm text-gray-500">
                     {textResponses.length} response{textResponses.length !== 1 ? 's' : ''}
                     {scoredResponseIds.length > 0 && (
-                      <span className="ml-2 text-xs bg-green-500/15 text-green-400 border border-green-500/25 font-bold px-1.5 py-0.5 rounded-full">
+                      <span className="ml-2 text-xs bg-green-50 text-green-700 border border-green-200 font-bold px-1.5 py-0.5 rounded-full">
                         {scoredResponseIds.length} matched
                       </span>
                     )}
@@ -415,10 +415,10 @@ export function PollResults({
                     </button>
                   )}
                   {isActive && onPublish && (
-                    <span className="text-xs text-white/25">Close poll first</span>
+                    <span className="text-xs text-gray-400">Close poll first</span>
                   )}
                   {responsesPublished && (
-                    <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/25 font-bold px-2 py-1 rounded-full">
+                    <span className="text-xs bg-green-50 text-green-700 border border-green-200 font-bold px-2 py-1 rounded-full">
                       Published
                     </span>
                   )}
@@ -430,7 +430,7 @@ export function PollResults({
             {sortedResponses.length > 0 && (
               <div className="space-y-2">
                 {!isHost && responsesPublished && (
-                  <p className="text-xs font-bold text-white/30 uppercase tracking-widest">Responses</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Responses</p>
                 )}
                 <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                   {sortedResponses.map((r, i) => {
@@ -438,22 +438,22 @@ export function PollResults({
                     const isOwn = myTextResponseId === r.id;
                     return (
                       <div key={r.id} className={`rounded-xl px-3 py-2.5 border ${
-                        isScored ? 'bg-green-500/10 border-green-500/25' : 'bg-white/5 border-white/10'
+                        isScored ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-100'
                       }`}>
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm text-white/75 flex-1">{r.text}</p>
+                          <p className="text-sm text-gray-800 flex-1">{r.text}</p>
                           {isScored && (
                             <span className="text-xs bg-green-500 text-white font-black px-2 py-0.5 rounded shrink-0">+1000</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <p className={`text-xs ${isOwn ? 'text-brand-400 font-semibold' : 'text-white/30'}`}>
+                          <p className={`text-xs ${isOwn ? 'text-brand-500 font-semibold' : 'text-gray-400'}`}>
                             {r.author}{isOwn ? ' (you)' : ''}
                           </p>
                           {isHost && revealedAt != null && (
-                            <span className="text-xs text-white/20 font-mono">{fmt(r.createdAt - revealedAt)}</span>
+                            <span className="text-xs text-gray-300 font-mono">{fmt(r.createdAt - revealedAt)}</span>
                           )}
-                          {isHost && <span className="text-xs text-white/15">#{i + 1}</span>}
+                          {isHost && <span className="text-xs text-gray-200">#{i + 1}</span>}
                         </div>
                       </div>
                     );
@@ -463,14 +463,14 @@ export function PollResults({
             )}
 
             {isHost && textResponses.length === 0 && (
-              <p className="text-sm text-white/25 text-center py-3">Waiting for responses...</p>
+              <p className="text-sm text-gray-400 text-center py-3">Waiting for responses...</p>
             )}
           </div>
         )}
 
         {/* ── Host active controls ── */}
         {isHost && isActive && (
-          <div className="flex items-center justify-between pt-3 border-t border-white/10">
+          <div className="flex items-center justify-between pt-3 border-t border-pink-100">
             <div>
               {!isRevealed && onReveal && (
                 <button
@@ -484,7 +484,7 @@ export function PollResults({
             {onClose && (
               <button
                 onClick={onClose}
-                className="text-xs text-red-400 hover:text-red-300 font-bold border border-red-500/30 hover:border-red-400/50 px-3 py-1.5 rounded-lg transition-colors"
+                className="text-xs text-red-500 hover:text-red-600 font-bold border border-red-200 hover:border-red-300 px-3 py-1.5 rounded-lg transition-colors bg-red-50"
               >
                 Close Poll
               </button>

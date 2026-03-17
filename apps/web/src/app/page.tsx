@@ -51,10 +51,10 @@ export default function Home() {
     <main className="min-h-screen flex flex-col lg:flex-row">
 
       {/* ── Left panel: brand ── */}
-      <div className="hidden lg:flex lg:w-[48%] bg-[#0f0f0f] flex-col justify-between p-14 min-h-screen border-r border-white/5">
+      <div className="hidden lg:flex lg:w-[48%] bg-gradient-to-br from-pink-400 via-rose-400 to-fuchsia-500 flex-col justify-between p-14 min-h-screen">
         {/* Logo */}
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center">
             <span className="text-white text-sm font-bold leading-none">B</span>
           </div>
           <span className="text-white/90 font-semibold text-base tracking-tight">Bill Pulse</span>
@@ -62,17 +62,17 @@ export default function Home() {
 
         {/* Center copy */}
         <div>
-          <p className="text-white/30 text-xs font-medium uppercase tracking-widest mb-6">Live polling</p>
+          <p className="text-white/60 text-xs font-medium uppercase tracking-widest mb-6">Live polling</p>
           <h1 className="text-4xl font-semibold text-white leading-snug tracking-tight mb-4">
             No more next<br />Slide Please...
           </h1>
-          <p className="text-white/40 text-sm leading-relaxed max-w-xs">
+          <p className="text-white/70 text-sm leading-relaxed max-w-xs">
             Polls, open-ended questions, and Q&A — no logins, no friction.
           </p>
         </div>
 
         {/* Footer */}
-        <p className="text-white/20 text-xs">No account needed</p>
+        <p className="text-white/50 text-xs">No account needed</p>
       </div>
 
       {/* ── Right panel: form ── */}

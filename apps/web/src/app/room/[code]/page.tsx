@@ -245,23 +245,23 @@ export default function ParticipantRoom() {
           <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/40">
             <span className="text-white text-sm font-black">B</span>
           </div>
-          <span className="text-white font-bold text-lg tracking-tight">Bill Pulse</span>
+          <span className="text-gray-900 font-bold text-lg tracking-tight">Bill Pulse</span>
         </div>
 
         <div className="w-full max-w-sm">
           {/* Code badge */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 bg-brand-500/20 border border-brand-500/30 rounded-full px-4 py-1.5 mb-4">
-              <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
-              <span className="text-brand-300 text-xs font-semibold uppercase tracking-wider">Live session</span>
+            <div className="inline-flex items-center gap-2 bg-brand-100 border border-brand-200 rounded-full px-4 py-1.5 mb-4">
+              <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse" />
+              <span className="text-brand-600 text-xs font-semibold uppercase tracking-wider">Live session</span>
             </div>
-            <div className="font-mono font-black text-4xl tracking-[0.2em] text-white mb-1">{code}</div>
-            <p className="text-white/50 text-sm">Enter your name to join this session</p>
+            <div className="font-mono font-black text-4xl tracking-[0.2em] text-gray-900 mb-1">{code}</div>
+            <p className="text-gray-500 text-sm">Enter your name to join this session</p>
           </div>
 
-          <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-6 space-y-4">
+          <div className="bg-white border border-pink-100 shadow-lg rounded-2xl p-6 space-y-4">
             <input
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+              className="w-full bg-gray-50 border border-pink-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
               placeholder="Your name"
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
@@ -269,9 +269,9 @@ export default function ParticipantRoom() {
               autoFocus
             />
             {error && (
-              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-                <span className="text-red-400 text-sm">⚠</span>
-                <p className="text-red-300 text-sm">{error}</p>
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <span className="text-red-500 text-sm">⚠</span>
+                <p className="text-red-600 text-sm">{error}</p>
               </div>
             )}
             <button
@@ -288,9 +288,9 @@ export default function ParticipantRoom() {
             </button>
           </div>
 
-          <p className="text-center text-xs text-white/30 mt-5">
+          <p className="text-center text-xs text-gray-400 mt-5">
             Wrong room?{' '}
-            <a href="/" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">Go to home</a>
+            <a href="/" className="text-brand-600 hover:text-brand-700 underline underline-offset-2">Go to home</a>
           </p>
         </div>
       </div>
@@ -301,9 +301,9 @@ export default function ParticipantRoom() {
     return (
       <div className="min-h-screen bg-mesh flex flex-col items-center justify-center p-6 text-center">
         <div className="text-5xl mb-4">😕</div>
-        <h2 className="text-2xl font-bold text-white mb-2">Room not found</h2>
-        <p className="text-white/50 mb-6">
-          The room <span className="font-mono font-bold text-white/80">{code}</span> doesn&apos;t exist or has ended.
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Room not found</h2>
+        <p className="text-gray-500 mb-6">
+          The room <span className="font-mono font-bold text-gray-800">{code}</span> doesn&apos;t exist or has ended.
         </p>
         <a
           href="/"
@@ -319,8 +319,8 @@ export default function ParticipantRoom() {
     return (
       <div className="min-h-screen bg-mesh flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-white/50 text-sm">Connecting to session…</p>
+          <div className="w-10 h-10 border-2 border-brand-300 border-t-brand-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Connecting to session…</p>
         </div>
       </div>
     );
@@ -336,30 +336,30 @@ export default function ParticipantRoom() {
   const hasActivePoll = polls.some(p => p.isActive);
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-fuchsia-50 pb-24">
       {/* Header */}
-      <div className="bg-[#0a0a1a] border-b border-white/5 px-4 py-4">
+      <div className="bg-white border-b border-pink-100 shadow-sm px-4 py-4">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div>
-            <h1 className="font-bold text-lg text-white leading-tight">{room.title}</h1>
-            <p className="text-white/40 text-xs mt-0.5">Hosted by {room.hostName}</p>
+            <h1 className="font-bold text-lg text-gray-900 leading-tight">{room.title}</h1>
+            <p className="text-gray-400 text-xs mt-0.5">Hosted by {room.hostName}</p>
           </div>
           <div className="text-right">
-            <div className="font-mono font-black text-base tracking-[0.2em] text-brand-400">{code}</div>
-            <div className="text-xs text-white/30 mt-0.5">{participants} here</div>
+            <div className="font-mono font-black text-base tracking-[0.2em] text-brand-600">{code}</div>
+            <div className="text-xs text-gray-400 mt-0.5">{participants} here</div>
           </div>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="bg-[#0a0a1a] border-b border-white/10 sticky top-0 z-10">
+      <div className="bg-white border-b border-pink-100 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex">
           {(['polls', 'qa'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${
-                tab === t ? 'border-brand-500 text-brand-400' : 'border-transparent text-white/30 hover:text-white/50'
+                tab === t ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'
               }`}
             >
               {t === 'polls' ? `Polls${hasActivePoll ? ' ●' : ''}` : `Q&A (${questions.length})`}
@@ -416,9 +416,9 @@ export default function ParticipantRoom() {
             {/* Waiting indicator */}
             {hasUnrevealedActive && livePolls.length === 0 && (
               <div className="text-center py-14">
-                <div className="w-10 h-10 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin mx-auto mb-4" />
-                <p className="font-bold text-white/60 text-lg">Next question coming up...</p>
-                <p className="text-sm text-white/30 mt-1">Stand by</p>
+                <div className="w-10 h-10 border-2 border-brand-300 border-t-brand-500 rounded-full animate-spin mx-auto mb-4" />
+                <p className="font-bold text-gray-600 text-lg">Next question coming up...</p>
+                <p className="text-sm text-gray-400 mt-1">Stand by</p>
               </div>
             )}
 
@@ -426,22 +426,22 @@ export default function ParticipantRoom() {
             {livePolls.length === 0 && !hasUnrevealedActive && pastPolls.length === 0 && (
               <div className="text-center py-24">
                 <div className="text-5xl mb-4">📊</div>
-                <p className="font-bold text-white/40 text-lg">Waiting for the first question...</p>
+                <p className="font-bold text-gray-400 text-lg">Waiting for the first question...</p>
               </div>
             )}
 
             {/* ── Leaderboard ── */}
             {leaderboard.length > 0 && (
-              <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl p-4">
-                <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3">🏆 Leaderboard</p>
+              <div className="bg-white border-2 border-amber-100 rounded-2xl p-4 shadow-sm">
+                <p className="text-xs font-bold text-amber-500 uppercase tracking-widest mb-3">🏆 Leaderboard</p>
                 <div className="space-y-2">
                   {leaderboard.map((entry, i) => (
-                    <div key={entry.id} className={`flex items-center gap-3 rounded-xl px-3 py-2 ${entry.id === socketId ? 'bg-brand-500/10 border border-brand-500/20' : 'bg-white/5'}`}>
-                      <span className="text-sm font-black text-white/30 w-5 text-right">{i + 1}</span>
-                      <span className="flex-1 text-sm font-semibold text-white/80 truncate">
+                    <div key={entry.id} className={`flex items-center gap-3 rounded-xl px-3 py-2 ${entry.id === socketId ? 'bg-pink-50 border border-pink-200' : 'bg-gray-50'}`}>
+                      <span className="text-sm font-black text-gray-400 w-5 text-right">{i + 1}</span>
+                      <span className="flex-1 text-sm font-semibold text-gray-800 truncate">
                         {entry.name}{entry.id === socketId ? ' (you)' : ''}
                       </span>
-                      <span className="text-sm font-black text-amber-400">{entry.score.toLocaleString()} pts</span>
+                      <span className="text-sm font-black text-amber-500">{entry.score.toLocaleString()} pts</span>
                     </div>
                   ))}
                 </div>
@@ -451,7 +451,7 @@ export default function ParticipantRoom() {
             {/* ── Past section ── */}
             {pastPolls.length > 0 && (
               <div>
-                <p className="text-xs font-bold text-white/25 uppercase tracking-widest mb-3">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
                   Past — {pastPolls.length} {pastPolls.length === 1 ? 'poll' : 'polls'}
                 </p>
                 <div className="space-y-3">
@@ -488,10 +488,10 @@ export default function ParticipantRoom() {
       </div>
 
       {tab === 'qa' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a1a] border-t border-white/10 p-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-pink-100 p-4 shadow-lg">
           <div className="max-w-lg mx-auto flex gap-3">
             <input
-              className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="flex-1 bg-gray-50 border border-pink-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
               placeholder="Ask a question..."
               value={qText}
               onChange={e => setQText(e.target.value)}

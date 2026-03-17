@@ -61,10 +61,10 @@ function EditPendingForm({
   };
 
   return (
-    <div className="bg-[#1a1a2e] border border-brand-500/30 rounded-2xl p-4 space-y-3">
-      <p className="text-xs font-bold text-brand-400 uppercase tracking-widest">Edit question</p>
+    <div className="bg-white border-2 border-pink-200 rounded-2xl p-4 space-y-3 shadow-sm">
+      <p className="text-xs font-bold text-brand-600 uppercase tracking-widest">Edit question</p>
       <input
-        className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        className="w-full bg-gray-50 border border-pink-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
         value={question}
         onChange={e => setQuestion(e.target.value)}
         placeholder="Question"
@@ -77,11 +77,11 @@ function EditPendingForm({
                 type="button"
                 onClick={() => setCorrectOptionIndex(correctOptionIndex === i ? undefined : i)}
                 className={`w-5 h-5 rounded-full border-2 shrink-0 transition-colors ${
-                  correctOptionIndex === i ? 'bg-green-500 border-green-500' : 'border-white/30'
+                  correctOptionIndex === i ? 'bg-green-500 border-green-500' : 'border-gray-300'
                 }`}
               />
               <input
-                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={opt}
                 onChange={e => updateOption(i, e.target.value)}
                 placeholder={`Option ${i + 1}`}
@@ -93,7 +93,7 @@ function EditPendingForm({
                     if (correctOptionIndex === i) setCorrectOptionIndex(undefined);
                     else if (correctOptionIndex != null && correctOptionIndex > i) setCorrectOptionIndex(correctOptionIndex - 1);
                   }}
-                  className="text-white/25 hover:text-red-400 text-lg leading-none"
+                  className="text-gray-300 hover:text-red-500 text-lg leading-none"
                 >×</button>
               )}
             </div>
@@ -101,17 +101,17 @@ function EditPendingForm({
           {options.length < 6 && (
             <button
               onClick={() => setOptions(prev => [...prev, ''])}
-              className="text-xs text-brand-400 hover:text-brand-300 font-bold"
+              className="text-xs text-brand-600 hover:text-brand-700 font-bold"
             >+ Add option</button>
           )}
         </div>
       )}
       <div className="flex items-center gap-3">
-        <label className="text-xs text-white/40">Duration:</label>
+        <label className="text-xs text-gray-500">Duration:</label>
         <select
           value={duration}
           onChange={e => setDuration(Number(e.target.value))}
-          className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-sm text-white"
+          className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-800"
         >
           <option value={0}>No timer</option>
           <option value={15}>15s</option>
@@ -121,7 +121,7 @@ function EditPendingForm({
         </select>
       </div>
       <div className="flex gap-2 justify-end">
-        <button onClick={onCancel} className="text-sm text-white/40 hover:text-white/70 px-3 py-1.5 rounded-lg border border-white/15">Cancel</button>
+        <button onClick={onCancel} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200">Cancel</button>
         <button onClick={save} className="text-sm bg-brand-500 hover:bg-brand-600 text-white font-bold px-3 py-1.5 rounded-lg">Save</button>
       </div>
     </div>
@@ -148,20 +148,20 @@ function EditPollModal({
   const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-pink-500'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-[#1a1a2e] border border-white/10 rounded-3xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl">
         {/* Modal header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h2 className="text-lg font-black text-white">Edit Poll</h2>
-          <button onClick={onClose} className="text-white/30 hover:text-white text-2xl leading-none transition-colors">×</button>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-pink-100 bg-pink-50/50">
+          <h2 className="text-lg font-black text-gray-900">Edit Poll</h2>
+          <button onClick={onClose} className="text-gray-300 hover:text-gray-700 text-2xl leading-none transition-colors">×</button>
         </div>
 
         <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
           {/* Question */}
           <div>
-            <label className="text-xs font-bold text-white/40 uppercase tracking-widest block mb-2">Question</label>
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Question</label>
             <textarea
-              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+              className="w-full bg-gray-50 border border-pink-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
               rows={3}
               value={question}
               onChange={e => setQuestion(e.target.value)}
@@ -172,8 +172,8 @@ function EditPollModal({
           {/* MC: mark correct option */}
           {poll.type === 'multiple-choice' && poll.options.length > 0 && (
             <div>
-              <label className="text-xs font-bold text-white/40 uppercase tracking-widest block mb-2">
-                Correct Option <span className="text-white/20 normal-case">(tap to toggle)</span>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">
+                Correct Option <span className="text-gray-300 normal-case">(tap to toggle)</span>
               </label>
               <div className="space-y-2">
                 {poll.options.map((opt, i) => {
@@ -187,17 +187,17 @@ function EditPollModal({
                       onClick={() => setCorrectOptionId(isCorrect ? undefined : opt.id)}
                       className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 border transition-all text-left ${
                         isCorrect
-                          ? 'border-green-400/60 bg-green-500/10'
-                          : 'border-white/10 bg-white/5 hover:bg-white/10'
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-gray-100 bg-gray-50 hover:bg-pink-50'
                       }`}
                     >
                       <div className={`w-7 h-7 rounded-lg ${color} flex items-center justify-center font-black text-white text-xs shrink-0`}>
                         {isCorrect ? '✓' : letter}
                       </div>
-                      <span className={`text-sm font-semibold flex-1 ${isCorrect ? 'text-green-300' : 'text-white/70'}`}>
+                      <span className={`text-sm font-semibold flex-1 ${isCorrect ? 'text-green-700' : 'text-gray-700'}`}>
                         {opt.text}
                       </span>
-                      {isCorrect && <span className="text-xs text-green-400 font-bold">Correct</span>}
+                      {isCorrect && <span className="text-xs text-green-600 font-bold">Correct</span>}
                     </button>
                   );
                 })}
@@ -208,9 +208,9 @@ function EditPollModal({
           {/* Open text: correct answer */}
           {poll.type === 'open-text' && (
             <div>
-              <label className="text-xs font-bold text-white/40 uppercase tracking-widest block mb-2">Reference Answer</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Reference Answer</label>
               <input
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full bg-gray-50 border border-pink-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={correctAnswer}
                 onChange={e => setCorrectAnswer(e.target.value)}
                 placeholder="Expected answer (exact match, case/space insensitive)"
@@ -220,10 +220,10 @@ function EditPollModal({
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-6 py-4 border-t border-white/10">
+        <div className="flex gap-3 px-6 py-4 border-t border-pink-100">
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl border border-white/15 text-sm font-bold text-white/50 hover:text-white/80 transition-colors"
+            className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
           >
             Cancel
           </button>
@@ -468,7 +468,7 @@ export default function HostRoom() {
   const editingPoll = editingPollId ? polls.find(p => p.id === editingPollId) : null;
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] pb-8">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-fuchsia-50 pb-8">
       {/* Edit poll modal */}
       {editingPoll && (
         <EditPollModal
@@ -479,28 +479,28 @@ export default function HostRoom() {
         />
       )}
       {/* Header */}
-      <div className="bg-[#0a0a1a] border-b border-white/5 px-4 py-4">
+      <div className="bg-white border-b border-pink-100 shadow-sm px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <div className="text-xs font-bold text-white/30 uppercase tracking-widest mb-0.5">Host Dashboard</div>
-            <h1 className="font-bold text-xl text-white">{room?.title || 'Loading...'}</h1>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5">Host Dashboard</div>
+            <h1 className="font-bold text-xl text-gray-900">{room?.title || 'Loading...'}</h1>
           </div>
           <div className="text-right">
-            <div className="font-mono font-black text-2xl tracking-[0.2em] text-brand-400">{code}</div>
-            <div className="text-xs text-white/30 mt-0.5">{participants} participants</div>
+            <div className="font-mono font-black text-2xl tracking-[0.2em] text-brand-600">{code}</div>
+            <div className="text-xs text-gray-400 mt-0.5">{participants} participants</div>
           </div>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div className="bg-[#0a0a1a] border-b border-white/10 sticky top-0 z-10">
+      <div className="bg-white border-b border-pink-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex">
           {(['polls', 'qa'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${
-                tab === t ? 'border-brand-500 text-brand-400' : 'border-transparent text-white/30 hover:text-white/50'
+                tab === t ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-400 hover:text-gray-600'
               }`}
             >
               {t === 'polls' ? 'Polls' : `Q&A (${questions.length})`}
@@ -513,27 +513,27 @@ export default function HostRoom() {
         {tab === 'polls' && (
           <>
             {/* Participant count */}
-            <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl px-4 py-3">
+            <div className="bg-white border border-pink-100 rounded-2xl px-4 py-3 shadow-sm">
               <div className="flex items-center gap-3 mb-2">
                 <span className="relative flex h-2.5 w-2.5 shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
                 </span>
-                <span className="text-sm text-white/60">
-                  <span className="text-2xl font-black text-white mr-1">{participants}</span>
+                <span className="text-sm text-gray-600">
+                  <span className="text-2xl font-black text-gray-900 mr-1">{participants}</span>
                   participant{participants !== 1 ? 's' : ''} joined
                 </span>
               </div>
               {participantList.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {participantList.map(p => (
-                    <span key={p.id} className="text-xs bg-brand-500/10 text-brand-300 border border-brand-500/20 px-2.5 py-0.5 rounded-full font-semibold">
+                    <span key={p.id} className="text-xs bg-pink-50 text-pink-700 border border-pink-200 px-2.5 py-0.5 rounded-full font-semibold">
                       {p.name}
                     </span>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-white/25">Waiting for participants to join...</p>
+                <p className="text-xs text-gray-400">Waiting for participants to join...</p>
               )}
             </div>
 
@@ -542,7 +542,7 @@ export default function HostRoom() {
             {/* Pending queue */}
             {pendingPolls.length > 0 && (
               <div>
-                <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">
+                <p className="text-xs font-bold text-brand-600 uppercase tracking-widest mb-2">
                   Up Next ({pendingPolls.length})
                 </p>
                 <div className="space-y-1.5">
@@ -558,23 +558,23 @@ export default function HostRoom() {
                           onCancel={() => setEditingPendingIndex(null)}
                         />
                       ) : (
-                        <div className="flex items-center gap-3 bg-[#1a1a2e] border border-white/10 rounded-xl px-4 py-2.5">
-                          <span className="text-xs text-white/25 font-mono w-4 shrink-0">{i + 1}.</span>
+                        <div className="flex items-center gap-3 bg-white border border-pink-100 rounded-xl px-4 py-2.5 shadow-sm">
+                          <span className="text-xs text-gray-400 font-mono w-4 shrink-0">{i + 1}.</span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white/80 truncate">{poll.question}</p>
-                            <p className="text-xs text-white/30">
+                            <p className="text-sm font-semibold text-gray-800 truncate">{poll.question}</p>
+                            <p className="text-xs text-gray-400">
                               {poll.pollType === 'multiple-choice' ? `${poll.options.length} options` : 'Open text'}
                               {poll.duration > 0 ? ` · ${poll.duration >= 60 ? `${poll.duration / 60}min` : `${poll.duration}s`}` : ''}
                             </p>
                           </div>
                           <button
                             onClick={() => setEditingPendingIndex(i)}
-                            className="text-white/20 hover:text-brand-400 text-sm shrink-0 transition-colors"
+                            className="text-gray-300 hover:text-brand-500 text-sm shrink-0 transition-colors"
                             title="Edit"
                           >✏️</button>
                           <button
                             onClick={() => setPendingPolls(prev => prev.filter((_, idx) => idx !== i))}
-                            className="text-white/20 hover:text-red-400 text-lg leading-none shrink-0 transition-colors"
+                            className="text-gray-300 hover:text-red-500 text-lg leading-none shrink-0 transition-colors"
                             title="Remove"
                           >×</button>
                         </div>
@@ -628,7 +628,7 @@ export default function HostRoom() {
             {/* Past polls */}
             {pastPolls.length > 0 && (
               <div>
-                <p className="text-xs font-bold text-white/25 uppercase tracking-widest mb-3">Past Polls</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Past Polls</p>
                 <div className="space-y-3">
                   {pastPolls.map(poll => (
                     <PollResults
@@ -661,14 +661,14 @@ export default function HostRoom() {
 
             {/* Leaderboard */}
             {leaderboard.length > 0 && (
-              <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl px-4 py-4">
-                <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3">🏆 Leaderboard</p>
+              <div className="bg-white border border-amber-100 rounded-2xl px-4 py-4 shadow-sm">
+                <p className="text-xs font-bold text-amber-500 uppercase tracking-widest mb-3">🏆 Leaderboard</p>
                 <div className="space-y-2">
                   {leaderboard.map((entry, i) => (
-                    <div key={entry.id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-white/5">
-                      <span className="text-sm font-black text-white/30 w-5 text-right">{i + 1}</span>
-                      <span className="flex-1 text-sm font-semibold text-white/75 truncate">{entry.name}</span>
-                      <span className="text-sm font-black text-amber-400">{entry.score.toLocaleString()} pts</span>
+                    <div key={entry.id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-gray-50">
+                      <span className="text-sm font-black text-gray-400 w-5 text-right">{i + 1}</span>
+                      <span className="flex-1 text-sm font-semibold text-gray-700 truncate">{entry.name}</span>
+                      <span className="text-sm font-black text-amber-500">{entry.score.toLocaleString()} pts</span>
                     </div>
                   ))}
                 </div>
@@ -676,7 +676,7 @@ export default function HostRoom() {
             )}
 
             {activePolls.length === 0 && pastPolls.length === 0 && (
-              <div className="text-center py-16 text-white/25">
+              <div className="text-center py-16 text-gray-400">
                 <div className="text-5xl mb-3">📊</div>
                 <p className="font-bold text-lg">Create your first poll above</p>
               </div>
