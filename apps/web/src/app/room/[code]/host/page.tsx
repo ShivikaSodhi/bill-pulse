@@ -52,6 +52,7 @@ const TIMER_OPTIONS = [
   { label: '1 min', value: 60 },
   { label: '2 min', value: 120 },
 ];
+const TIMER_PRESET_VALUES = TIMER_OPTIONS.map(o => o.value);
 
 // Slido-inspired modal editor for a pending (not-yet-launched) poll
 function EditPendingForm({
@@ -68,6 +69,10 @@ function EditPendingForm({
   const [correctOptionIndex, setCorrectOptionIndex] = useState<number | undefined>(data.correctOptionIndex);
   const [correctAnswer, setCorrectAnswer] = useState(data.correctAnswer ?? '');
   const [duration, setDuration] = useState(data.duration);
+  const [customTimer, setCustomTimer] = useState(!TIMER_PRESET_VALUES.includes(data.duration) && data.duration > 0);
+  const [customTimerInput, setCustomTimerInput] = useState(
+    !TIMER_PRESET_VALUES.includes(data.duration) && data.duration > 0 ? String(data.duration) : ''
+  );
 
   const updateOption = (i: number, val: string) => {
     setOptions(prev => prev.map((o, idx) => idx === i ? val : o));
@@ -191,13 +196,13 @@ function EditPendingForm({
           {/* Timer — pill chips */}
           <div>
             <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2.5">Time limit</label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
               {TIMER_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => setDuration(opt.value)}
+                  onClick={() => { setDuration(opt.value); setCustomTimer(false); setCustomTimerInput(''); }}
                   className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${
-                    duration === opt.value
+                    !customTimer && duration === opt.value
                       ? 'bg-brand-500 border-brand-500 text-white shadow-md shadow-brand-400/25'
                       : 'border-gray-200 text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600'
                   }`}
@@ -205,7 +210,49 @@ function EditPendingForm({
                   {opt.label}
                 </button>
               ))}
+              {/* Custom timer */}
+              {!customTimer ? (
+                <button
+                  onClick={() => {
+                    setCustomTimer(true);
+                    setCustomTimerInput(!TIMER_PRESET_VALUES.includes(duration) && duration > 0 ? String(duration) : '');
+                  }}
+                  className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${
+                    !TIMER_PRESET_VALUES.includes(duration) && duration > 0
+                      ? 'bg-brand-500 border-brand-500 text-white shadow-md shadow-brand-400/25'
+                      : 'border-gray-200 text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600'
+                  }`}
+                >
+                  {!TIMER_PRESET_VALUES.includes(duration) && duration > 0 ? `${duration}s` : 'Custom…'}
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5 border-2 border-brand-400 rounded-xl px-3 py-2 bg-brand-50">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="w-14 text-sm font-black text-brand-700 bg-transparent focus:outline-none text-center"
+                    placeholder="60"
+                    value={customTimerInput}
+                    autoFocus
+                    onChange={e => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setCustomTimerInput(raw);
+                      const v = parseInt(raw);
+                      if (!isNaN(v) && v > 0) setDuration(v);
+                    }}
+                  />
+                  <span className="text-xs text-brand-500 font-semibold">sec</span>
+                  <button
+                    onClick={() => { setCustomTimer(false); if (!TIMER_PRESET_VALUES.includes(duration)) setDuration(0); }}
+                    className="text-brand-400 hover:text-brand-700 text-lg leading-none ml-0.5"
+                  >×</button>
+                </div>
+              )}
             </div>
+            {customTimer && (
+              <p className="text-xs text-gray-400 mt-1.5">Enter seconds (e.g. 45 for 45s, 90 for 1:30)</p>
+            )}
           </div>
         </div>
 

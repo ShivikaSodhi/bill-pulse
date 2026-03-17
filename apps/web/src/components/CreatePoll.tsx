@@ -5,11 +5,12 @@ type PollType = 'multiple-choice' | 'open-text';
 
 const DURATION_OPTIONS = [
   { label: 'No timer', value: 0 },
+  { label: '15s', value: 15 },
   { label: '30s', value: 30 },
   { label: '1 min', value: 60 },
   { label: '2 min', value: 120 },
-  { label: '5 min', value: 300 },
 ];
+const PRESET_VALUES = DURATION_OPTIONS.map(o => o.value);
 
 export interface QuestionData {
   question: string;
@@ -35,6 +36,8 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
   const [imageBase64, setImageBase64] = useState<string | undefined>();
   const [imagePreview, setImagePreview] = useState<string | undefined>();
   const [duration, setDuration] = useState(0);
+  const [customTimer, setCustomTimer] = useState(false);
+  const [customTimerInput, setCustomTimerInput] = useState('');
   const [queuedQuestions, setQueuedQuestions] = useState<QuestionData[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -83,6 +86,8 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
     setImageBase64(undefined);
     setImagePreview(undefined);
     setDuration(0);
+    setCustomTimer(false);
+    setCustomTimerInput('');
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -210,19 +215,63 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
           {/* Timer */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Timer</label>
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
               {DURATION_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
-                  onClick={() => setDuration(opt.value)}
+                  onClick={() => { setDuration(opt.value); setCustomTimer(false); setCustomTimerInput(''); }}
                   className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                    duration === opt.value ? 'bg-brand-500 border-brand-500 text-white' : 'border-gray-300 text-gray-600 hover:border-brand-400'
+                    !customTimer && duration === opt.value
+                      ? 'bg-brand-500 border-brand-500 text-white'
+                      : 'border-gray-300 text-gray-600 hover:border-brand-400'
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
+              {/* Custom timer */}
+              {!customTimer ? (
+                <button
+                  onClick={() => {
+                    setCustomTimer(true);
+                    setCustomTimerInput(!PRESET_VALUES.includes(duration) && duration > 0 ? String(duration) : '');
+                  }}
+                  className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                    !PRESET_VALUES.includes(duration) && duration > 0
+                      ? 'bg-brand-500 border-brand-500 text-white'
+                      : 'border-gray-300 text-gray-600 hover:border-brand-400'
+                  }`}
+                >
+                  {!PRESET_VALUES.includes(duration) && duration > 0 ? `${duration}s` : 'Custom…'}
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5 border border-brand-400 rounded-lg px-2 py-1 bg-brand-50">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className="w-14 text-sm font-bold text-brand-700 bg-transparent focus:outline-none text-center"
+                    placeholder="60"
+                    value={customTimerInput}
+                    autoFocus
+                    onChange={e => {
+                      const raw = e.target.value.replace(/\D/g, '');
+                      setCustomTimerInput(raw);
+                      const v = parseInt(raw);
+                      if (!isNaN(v) && v > 0) setDuration(v);
+                    }}
+                  />
+                  <span className="text-xs text-brand-500 font-semibold">sec</span>
+                  <button
+                    onClick={() => { setCustomTimer(false); if (!PRESET_VALUES.includes(duration)) setDuration(0); }}
+                    className="text-brand-400 hover:text-brand-700 text-base leading-none ml-0.5"
+                  >×</button>
+                </div>
+              )}
             </div>
+            {customTimer && (
+              <p className="text-xs text-gray-400 mt-1.5">Enter time in seconds (e.g. 45 for 45s, 90 for 1:30)</p>
+            )}
           </div>
 
           {/* Image upload */}
