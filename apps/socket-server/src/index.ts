@@ -109,20 +109,27 @@ io.on('connection', (socket) => {
       responsesPublished: false,
       duration,
       endsAt: undefined,
+      revealedAt: undefined,
       createdAt: Date.now(),
       userVotes: {},
+      userVoteTimes: {},
       correctOptionId: correctOptionIndex != null
         ? pollOptions[correctOptionIndex]?.id
         : undefined,
     };
     room.polls.push(poll);
 
-    // Broadcast to room without revealing the correct answer
-    io.to(room.code).emit('poll-created', { poll: { ...poll, correctOptionId: undefined, userVotes: undefined } });
-    // Tell only the host which option is correct (so they can see it on their dashboard)
-    if (poll.correctOptionId) {
-      socket.emit('correct-answer-set', { pollId: poll.id, correctOptionId: poll.correctOptionId });
-    }
+    // Broadcast to all: no image (hidden until revealed), no correct answer, no vote data
+    io.to(room.code).emit('poll-created', {
+      poll: { ...poll, correctOptionId: undefined, userVotes: undefined, userVoteTimes: undefined, imageBase64: undefined },
+    });
+
+    // Host only: full metadata including image and correct answer
+    socket.emit('poll-host-metadata', {
+      pollId: poll.id,
+      correctOptionId: poll.correctOptionId,
+      imageBase64: poll.imageBase64,
+    });
   });
 
   socket.on('reveal-poll', ({ pollId }: { pollId: string }) => {
@@ -131,7 +138,10 @@ io.on('connection', (socket) => {
     const poll = room.polls.find(p => p.id === pollId);
     if (!poll || poll.isRevealed) return;
     poll.isRevealed = true;
-    io.to(room.code).emit('poll-revealed', { pollId });
+    poll.revealedAt = Date.now();
+
+    // Include imageBase64 so participants receive it on reveal
+    io.to(room.code).emit('poll-revealed', { pollId, revealedAt: poll.revealedAt, imageBase64: poll.imageBase64 });
 
     if (poll.duration > 0 && !poll.endsAt) {
       poll.endsAt = Date.now() + poll.duration * 1000;
@@ -176,7 +186,9 @@ io.on('connection', (socket) => {
     const poll = room.polls.find(p => p.id === pollId);
     if (!poll || poll.type !== 'open-text') return;
     poll.responsesPublished = true;
-    io.to(room.code).emit('responses-published', { pollId, textResponses: poll.textResponses });
+    // Sort by submission time before publishing
+    const sorted = [...poll.textResponses].sort((a, b) => a.createdAt - b.createdAt);
+    io.to(room.code).emit('responses-published', { pollId, textResponses: sorted });
   });
 
   socket.on('vote', ({ pollId, optionId }: { pollId: string; optionId: string }) => {
@@ -196,6 +208,11 @@ io.on('connection', (socket) => {
     option.votes++;
     poll.userVotes[socket.id] = optionId;
 
+    // Record how long after reveal the user answered
+    if (poll.revealedAt != null) {
+      poll.userVoteTimes[socket.id] = Date.now() - poll.revealedAt;
+    }
+
     io.to(room.code).emit('vote-update', { pollId, options: poll.options });
   });
 
@@ -206,7 +223,6 @@ io.on('connection', (socket) => {
     const poll = room.polls.find(p => p.id === pollId);
     if (!poll || !poll.isActive || poll.type !== 'open-text') return;
 
-    // One response per participant per poll
     const responseKey = `text:${socket.id}:${pollId}`;
     if (!socket.data.votes) socket.data.votes = new Set<string>();
     if (socket.data.votes.has(responseKey)) return;
@@ -235,6 +251,22 @@ io.on('connection', (socket) => {
       }
       socket.emit('poll-voter-details', { pollId, voterDetails: getVoterDetails(room, poll) });
     }
+  });
+
+  socket.on('delete-poll', ({ pollId }: { pollId: string }) => {
+    const room = getRoom(socket.data.roomCode);
+    if (!room || !socket.data.isHost) return;
+    room.polls = room.polls.filter(p => p.id !== pollId);
+    io.to(room.code).emit('poll-deleted', { pollId });
+  });
+
+  socket.on('update-poll', ({ pollId, question }: { pollId: string; question: string }) => {
+    const room = getRoom(socket.data.roomCode);
+    if (!room || !socket.data.isHost) return;
+    const poll = room.polls.find(p => p.id === pollId);
+    if (!poll) return;
+    poll.question = question.trim();
+    io.to(room.code).emit('poll-updated', { pollId, question: poll.question });
   });
 
   socket.on('submit-question', ({ text }: { text: string }) => {
@@ -296,15 +328,18 @@ io.on('connection', (socket) => {
 
 function getVoterDetails(room: ReturnType<typeof getRoom>, poll: Poll) {
   if (!room) return [];
-  return Object.entries(poll.userVotes).map(([socketId, optionId]) => {
-    const participant = room.participantList.find(p => p.id === socketId);
-    const option = poll.options.find(o => o.id === optionId);
-    return {
-      name: participant?.name ?? 'Anonymous',
-      optionId,
-      optionText: option?.text ?? '?',
-    };
-  });
+  return Object.entries(poll.userVotes)
+    .map(([socketId, optionId]) => {
+      const participant = room.participantList.find(p => p.id === socketId);
+      const option = poll.options.find(o => o.id === optionId);
+      return {
+        name: participant?.name ?? 'Anonymous',
+        optionId,
+        optionText: option?.text ?? '?',
+        responseTime: poll.userVoteTimes[socketId],
+      };
+    })
+    .sort((a, b) => (a.responseTime ?? Infinity) - (b.responseTime ?? Infinity));
 }
 
 function awardScores(room: ReturnType<typeof getRoom>, poll: Poll) {
@@ -331,8 +366,11 @@ function serializeRoom(room: ReturnType<typeof getRoom>) {
     polls: room.polls.map(p => ({
       ...p,
       userVotes: undefined,
-      // Only reveal correctOptionId for closed polls
+      userVoteTimes: undefined,
+      // Hide correct answer while poll is active
       correctOptionId: p.isActive ? undefined : p.correctOptionId,
+      // Hide image until revealed (client PollResults also enforces this)
+      imageBase64: p.isRevealed ? p.imageBase64 : undefined,
     })),
     questions: room.questions.map(q => ({ ...q, upvotedBy: Array.from(q.upvotedBy) })),
   };

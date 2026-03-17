@@ -23,9 +23,11 @@ export interface Poll {
   responsesPublished: boolean;
   duration: number;
   endsAt?: number;
+  revealedAt?: number;
   createdAt: number;
   correctOptionId?: string;
-  userVotes: Record<string, string>; // socketId -> optionId
+  userVotes: Record<string, string>;       // socketId -> optionId
+  userVoteTimes: Record<string, number>;   // socketId -> ms since revealedAt
 }
 
 export interface Question {

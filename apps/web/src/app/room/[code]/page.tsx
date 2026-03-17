@@ -22,6 +22,7 @@ interface Poll {
   isRevealed: boolean;
   responsesPublished: boolean;
   endsAt?: number;
+  revealedAt?: number;
   correctOptionId?: string;
 }
 
@@ -94,8 +95,13 @@ export default function ParticipantRoom() {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, endsAt } : p));
     });
 
-    socket.on('poll-revealed', ({ pollId }: { pollId: string }) => {
-      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isRevealed: true } : p));
+    socket.on('poll-revealed', ({ pollId, revealedAt, imageBase64 }: { pollId: string; revealedAt?: number; imageBase64?: string }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? {
+        ...p,
+        isRevealed: true,
+        ...(revealedAt ? { revealedAt } : {}),
+        ...(imageBase64 ? { imageBase64 } : {}),
+      } : p));
     });
 
     socket.on('question-added', ({ question }: { question: Question }) => {
@@ -359,6 +365,7 @@ export default function ParticipantRoom() {
                   isRevealed={currentPoll.isRevealed}
                   responsesPublished={currentPoll.responsesPublished}
                   endsAt={currentPoll.isActive ? currentPoll.endsAt : undefined}
+                  revealedAt={currentPoll.revealedAt}
                   correctOptionId={currentPoll.correctOptionId}
                   myVote={myVotes[currentPoll.id]}
                   myTextResponse={myTextResponses[currentPoll.id]}

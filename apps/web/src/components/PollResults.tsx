@@ -11,6 +11,7 @@ export interface TextResponse {
   id: string;
   text: string;
   author: string;
+  createdAt: number;
 }
 
 interface PollResultsProps {
@@ -25,15 +26,18 @@ interface PollResultsProps {
   isHost?: boolean;
   duration?: number;
   endsAt?: number;
+  revealedAt?: number;
   myVote?: string;
   myTextResponse?: string;
   correctOptionId?: string;
-  voterDetails?: { name: string; optionId: string; optionText: string }[];
+  voterDetails?: { name: string; optionId: string; optionText: string; responseTime?: number }[];
   onVote?: (optionId: string) => void;
   onTextResponse?: (text: string) => void;
   onPublish?: () => void;
   onClose?: () => void;
   onReveal?: () => void;
+  onDelete?: () => void;
+  onEdit?: () => void;
 }
 
 function Countdown({ endsAt }: { endsAt: number }) {
@@ -58,9 +62,13 @@ function Countdown({ endsAt }: { endsAt: number }) {
     <span className={`font-mono font-bold text-sm px-2 py-0.5 rounded ${
       urgent ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-700'
     }`}>
-      ⏱ {display}
+      {display}
     </span>
   );
+}
+
+function fmt(ms: number) {
+  return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
 
 export function PollResults({
@@ -75,6 +83,7 @@ export function PollResults({
   isHost = false,
   duration,
   endsAt,
+  revealedAt,
   myVote,
   myTextResponse,
   correctOptionId,
@@ -84,6 +93,8 @@ export function PollResults({
   onPublish,
   onClose,
   onReveal,
+  onDelete,
+  onEdit,
 }: PollResultsProps) {
   const [inputText, setInputText] = useState('');
   const total = options.reduce((s, o) => s + o.votes, 0);
@@ -96,6 +107,8 @@ export function PollResults({
   };
 
   const visibleResponses = isHost || responsesPublished ? textResponses : [];
+  // Sort text responses by submission time (fastest first)
+  const sortedResponses = [...visibleResponses].sort((a, b) => a.createdAt - b.createdAt);
 
   return (
     <div className="bg-white rounded-xl shadow p-5 space-y-4">
@@ -109,13 +122,41 @@ export function PollResults({
           }`}>
             {isActive ? 'Live' : 'Closed'}
           </span>
+          {/* Host edit/delete buttons for past polls */}
+          {isHost && !isActive && (
+            <div className="flex items-center gap-1">
+              {onEdit && (
+                <button
+                  onClick={onEdit}
+                  className="text-gray-400 hover:text-brand-500 p-1 rounded transition-colors"
+                  title="Edit question"
+                >
+                  ✏️
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={onDelete}
+                  className="text-gray-400 hover:text-red-500 p-1 rounded transition-colors"
+                  title="Delete poll"
+                >
+                  🗑
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Image */}
-      {imageBase64 && (
+      {/* Image — hidden from participants until poll is revealed */}
+      {imageBase64 && (isRevealed || isHost) && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={imageBase64} alt="poll" className="w-full max-h-56 object-cover rounded-lg border border-gray-100" />
+      )}
+      {imageBase64 && !isRevealed && !isHost && (
+        <div className="w-full h-24 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
+          <span className="text-sm text-gray-400">Image hidden until question is revealed</span>
+        </div>
       )}
 
       {/* Multiple choice */}
@@ -174,10 +215,12 @@ export function PollResults({
             <p className="text-xs text-gray-400">{total} total votes</p>
           </div>
 
-          {/* Host: per-user answer breakdown */}
+          {/* Host: per-user answer breakdown, ordered by response time */}
           {isHost && !isActive && voterDetails && voterDetails.length > 0 && (
             <div className="border-t border-gray-100 pt-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Responses ({voterDetails.length})</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                Responses ({voterDetails.length}) — ordered by speed
+              </p>
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {options.map(opt => {
                   const voters = voterDetails.filter(v => v.optionId === opt.id);
@@ -189,10 +232,13 @@ export function PollResults({
                       </p>
                       <div className="flex flex-wrap gap-1">
                         {voters.map((v, i) => (
-                          <span key={i} className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          <span key={i} className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${
                             correctOptionId === opt.id ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
                           }`}>
                             {v.name}
+                            {v.responseTime != null && (
+                              <span className="opacity-60">{fmt(v.responseTime)}</span>
+                            )}
                           </span>
                         ))}
                       </div>
@@ -260,17 +306,30 @@ export function PollResults({
             </div>
           )}
 
-          {/* Responses list */}
-          {visibleResponses.length > 0 && (
+          {/* Responses list — sorted by submission time */}
+          {sortedResponses.length > 0 && (
             <div className="space-y-2">
               {!isHost && responsesPublished && (
                 <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Responses revealed</p>
               )}
+              {isHost && (
+                <p className="text-xs text-gray-400">Ordered by submission time</p>
+              )}
               <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                {visibleResponses.map(r => (
+                {sortedResponses.map((r, i) => (
                   <div key={r.id} className="bg-gray-50 rounded-lg px-3 py-2">
                     <p className="text-sm text-gray-800">{r.text}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{r.author}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-xs text-gray-400">{r.author}</p>
+                      {isHost && revealedAt != null && (
+                        <span className="text-xs text-brand-400 font-mono">
+                          {fmt(r.createdAt - revealedAt)}
+                        </span>
+                      )}
+                      {isHost && (
+                        <span className="text-xs text-gray-300">#{i + 1}</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
