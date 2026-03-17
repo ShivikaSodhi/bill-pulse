@@ -617,6 +617,7 @@ export default function HostRoom() {
                       onClose={() => handleClosePoll(poll.id)}
                       onPublish={() => handlePublishResponses(poll.id)}
                       onReveal={!poll.isRevealed ? () => handleRevealPoll(poll.id) : undefined}
+                      onEdit={() => setEditingPollId(poll.id)}
                       questionNumber={allPolls.indexOf(poll) + 1}
                       totalQuestions={allPolls.length + pendingPolls.length}
                     />

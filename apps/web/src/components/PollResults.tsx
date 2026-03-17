@@ -174,8 +174,8 @@ export function PollResults({
         </div>
         <div className="flex items-center gap-2">
           {isActive && endsAt && <Countdown endsAt={endsAt} />}
-          {/* Host controls for past polls */}
-          {isHost && !isActive && (
+          {/* Host controls — edit always visible, reset/delete only when closed */}
+          {isHost && (
             <div className="flex items-center gap-1">
               {onEdit && (
                 <button
@@ -184,14 +184,14 @@ export function PollResults({
                   className="text-gray-300 hover:text-pink-500 p-1.5 rounded-lg hover:bg-pink-50 transition-colors text-sm"
                 >✏️</button>
               )}
-              {onUnpublish && (
+              {!isActive && onUnpublish && (
                 <button
                   onClick={onUnpublish}
                   title="Reset all responses and reverse scores"
                   className="text-xs text-brand-600 hover:text-brand-700 font-bold border border-brand-200 hover:border-brand-400 px-2.5 py-1 rounded-lg transition-colors bg-brand-50"
                 >Reset</button>
               )}
-              {onDelete && (
+              {!isActive && onDelete && (
                 <button
                   onClick={onDelete}
                   title="Delete poll"

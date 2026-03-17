@@ -328,10 +328,14 @@ export default function ParticipantRoom() {
 
   // Live: active AND revealed (hidden until host reveals)
   const livePolls = polls.filter(p => p.isActive && p.isRevealed);
+  // Show the most recently revealed question (one at a time)
+  const currentPoll = livePolls[livePolls.length - 1] ?? null;
   // Waiting: active but not yet revealed
   const hasUnrevealedActive = polls.some(p => p.isActive && !p.isRevealed);
   // Past: closed
   const pastPolls = polls.filter(p => !p.isActive);
+  // Game over: no active polls but some polls have been played
+  const gameOver = !polls.some(p => p.isActive) && pastPolls.length > 0;
 
   const hasActivePoll = polls.some(p => p.isActive);
 
@@ -371,112 +375,101 @@ export default function ParticipantRoom() {
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
         {tab === 'polls' && (
           <div className="space-y-6">
-            {/* ── Live section ── */}
-            {livePolls.length > 0 && (
+
+            {/* ── Current question (one at a time) ── */}
+            {currentPoll && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="relative flex h-2 w-2 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                   </span>
-                  <p className="text-xs font-bold text-green-500 uppercase tracking-widest">
-                    Live — {livePolls.length} active {livePolls.length === 1 ? 'poll' : 'polls'}
+                  <p className="text-xs font-bold text-green-600 uppercase tracking-widest">
+                    Question {polls.indexOf(currentPoll) + 1} of {polls.length}
                   </p>
                 </div>
-                <div className="space-y-3">
-                  {livePolls.map(poll => (
-                    <PollResults
-                      key={poll.id}
-                      question={poll.question}
-                      type={poll.type}
-                      options={poll.options}
-                      textResponses={poll.textResponses}
-                      imageBase64={poll.imageBase64}
-                      isActive={true}
-                      isRevealed={poll.isRevealed}
-                      responsesPublished={poll.responsesPublished}
-                      endsAt={poll.endsAt}
-                      revealedAt={poll.revealedAt}
-                      correctOptionId={poll.correctOptionId}
-                      scoredResponseIds={scoredResponseIds[poll.id]}
-                      myVote={myVotes[poll.id]}
-                      myTextResponse={myTextResponses[poll.id]}
-                      myTextResponseId={myTextResponseIds[poll.id]}
-                      duration={poll.duration}
-                      onVote={(optionId) => handleVote(poll.id, optionId)}
-                      onTextResponse={(text) => handleTextResponse(poll.id, text)}
-                      questionNumber={polls.indexOf(poll) + 1}
-                      totalQuestions={polls.length}
-                    />
-                  ))}
-                </div>
+                <PollResults
+                  question={currentPoll.question}
+                  type={currentPoll.type}
+                  options={currentPoll.options}
+                  textResponses={currentPoll.textResponses}
+                  imageBase64={currentPoll.imageBase64}
+                  isActive={true}
+                  isRevealed={currentPoll.isRevealed}
+                  responsesPublished={currentPoll.responsesPublished}
+                  endsAt={currentPoll.endsAt}
+                  revealedAt={currentPoll.revealedAt}
+                  correctOptionId={currentPoll.correctOptionId}
+                  scoredResponseIds={scoredResponseIds[currentPoll.id]}
+                  myVote={myVotes[currentPoll.id]}
+                  myTextResponse={myTextResponses[currentPoll.id]}
+                  myTextResponseId={myTextResponseIds[currentPoll.id]}
+                  duration={currentPoll.duration}
+                  onVote={(optionId) => handleVote(currentPoll.id, optionId)}
+                  onTextResponse={(text) => handleTextResponse(currentPoll.id, text)}
+                  questionNumber={polls.indexOf(currentPoll) + 1}
+                  totalQuestions={polls.length}
+                />
               </div>
             )}
 
-            {/* Waiting indicator */}
-            {hasUnrevealedActive && livePolls.length === 0 && (
+            {/* Waiting for next question */}
+            {!currentPoll && hasUnrevealedActive && (
               <div className="text-center py-14">
                 <div className="w-10 h-10 border-2 border-brand-300 border-t-brand-500 rounded-full animate-spin mx-auto mb-4" />
-                <p className="font-bold text-gray-600 text-lg">Next question coming up...</p>
-                <p className="text-sm text-gray-400 mt-1">Stand by</p>
+                <p className="font-bold text-gray-700 text-xl">Get ready...</p>
+                <p className="text-sm text-gray-400 mt-1">Next question coming up</p>
               </div>
             )}
 
             {/* Nothing yet */}
-            {livePolls.length === 0 && !hasUnrevealedActive && pastPolls.length === 0 && (
+            {!currentPoll && !hasUnrevealedActive && !gameOver && (
               <div className="text-center py-24">
-                <div className="text-5xl mb-4">📊</div>
-                <p className="font-bold text-gray-400 text-lg">Waiting for the first question...</p>
+                <div className="text-5xl mb-4">🎀</div>
+                <p className="font-bold text-gray-500 text-xl">Waiting for the first question...</p>
+                <p className="text-sm text-gray-400 mt-2">The host will start soon!</p>
               </div>
             )}
 
-            {/* ── Leaderboard ── */}
-            {leaderboard.length > 0 && (
-              <div className="bg-white border-2 border-amber-100 rounded-2xl p-4 shadow-sm">
-                <p className="text-xs font-bold text-amber-500 uppercase tracking-widest mb-3">🏆 Leaderboard</p>
-                <div className="space-y-2">
-                  {leaderboard.map((entry, i) => (
-                    <div key={entry.id} className={`flex items-center gap-3 rounded-xl px-3 py-2 ${entry.id === socketId ? 'bg-pink-50 border border-pink-200' : 'bg-gray-50'}`}>
-                      <span className="text-sm font-black text-gray-400 w-5 text-right">{i + 1}</span>
-                      <span className="flex-1 text-sm font-semibold text-gray-800 truncate">
-                        {entry.name}{entry.id === socketId ? ' (you)' : ''}
-                      </span>
-                      <span className="text-sm font-black text-amber-500">{entry.score.toLocaleString()} pts</span>
+            {/* ── Game over: show leaderboard ── */}
+            {gameOver && !currentPoll && (
+              <div className="space-y-4">
+                <div className="text-center py-6">
+                  <div className="text-5xl mb-3">🎉</div>
+                  <h2 className="text-2xl font-black text-gray-900 mb-1">That&apos;s a wrap!</h2>
+                  <p className="text-gray-500 text-sm">Here&apos;s how everyone did</p>
+                </div>
+
+                {leaderboard.length > 0 ? (
+                  <div className="bg-white border-2 border-amber-100 rounded-3xl overflow-hidden shadow-lg">
+                    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 px-5 py-4 border-b border-amber-100">
+                      <p className="text-sm font-black text-amber-600 uppercase tracking-widest">🏆 Final Scores</p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── Past section ── */}
-            {pastPolls.length > 0 && (
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                  Past — {pastPolls.length} {pastPolls.length === 1 ? 'poll' : 'polls'}
-                </p>
-                <div className="space-y-3">
-                  {pastPolls.map(poll => (
-                    <PollResults
-                      key={poll.id}
-                      question={poll.question}
-                      type={poll.type}
-                      options={poll.options}
-                      textResponses={poll.textResponses}
-                      imageBase64={poll.imageBase64}
-                      isActive={false}
-                      isRevealed={poll.isRevealed}
-                      responsesPublished={poll.responsesPublished}
-                      revealedAt={poll.revealedAt}
-                      correctOptionId={poll.correctOptionId}
-                      scoredResponseIds={scoredResponseIds[poll.id]}
-                      myVote={myVotes[poll.id]}
-                      myTextResponse={myTextResponses[poll.id]}
-                      myTextResponseId={myTextResponseIds[poll.id]}
-                      questionNumber={polls.indexOf(poll) + 1}
-                      totalQuestions={polls.length}
-                    />
-                  ))}
-                </div>
+                    <div className="p-3 space-y-2">
+                      {leaderboard.map((entry, i) => {
+                        const isMe = entry.id === socketId;
+                        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
+                        return (
+                          <div key={entry.id} className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${
+                            isMe ? 'bg-pink-50 border-2 border-pink-200' : i < 3 ? 'bg-amber-50 border border-amber-100' : 'bg-gray-50'
+                          }`}>
+                            <span className="text-lg w-7 text-center">{medal ?? <span className="text-sm font-black text-gray-400">{i + 1}</span>}</span>
+                            <span className={`flex-1 font-bold truncate ${isMe ? 'text-pink-800' : 'text-gray-800'}`}>
+                              {entry.name}{isMe ? ' 👈 you' : ''}
+                            </span>
+                            <span className={`font-black text-base ${isMe ? 'text-pink-600' : 'text-amber-600'}`}>
+                              {entry.score.toLocaleString()} pts
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-gray-400">
+                    <p>No scores recorded</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
