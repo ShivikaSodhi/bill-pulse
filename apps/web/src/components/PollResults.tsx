@@ -38,6 +38,7 @@ interface PollResultsProps {
   onReveal?: () => void;
   onDelete?: () => void;
   onEdit?: () => void;
+  onUnpublish?: () => void;
 }
 
 function Countdown({ endsAt }: { endsAt: number }) {
@@ -95,6 +96,7 @@ export function PollResults({
   onReveal,
   onDelete,
   onEdit,
+  onUnpublish,
 }: PollResultsProps) {
   const [inputText, setInputText] = useState('');
   const total = options.reduce((s, o) => s + o.votes, 0);
@@ -122,7 +124,7 @@ export function PollResults({
           }`}>
             {isActive ? 'Live' : 'Closed'}
           </span>
-          {/* Host edit/delete buttons for past polls */}
+          {/* Host edit/delete/unpublish buttons for past polls */}
           {isHost && !isActive && (
             <div className="flex items-center gap-1">
               {onEdit && (
@@ -134,11 +136,20 @@ export function PollResults({
                   ✏️
                 </button>
               )}
+              {onUnpublish && (
+                <button
+                  onClick={onUnpublish}
+                  className="text-xs text-orange-400 hover:text-orange-600 font-medium border border-orange-200 hover:border-orange-400 px-2 py-0.5 rounded transition-colors"
+                  title="Remove poll and reverse scores"
+                >
+                  Unpublish
+                </button>
+              )}
               {onDelete && (
                 <button
                   onClick={onDelete}
                   className="text-gray-400 hover:text-red-500 p-1 rounded transition-colors"
-                  title="Delete poll"
+                  title="Delete poll (keeps scores)"
                 >
                   🗑
                 </button>

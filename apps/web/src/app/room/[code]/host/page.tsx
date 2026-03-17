@@ -321,6 +321,10 @@ export default function HostRoom() {
     getSocket().emit('delete-poll', { pollId });
   };
 
+  const handleUnpublishPoll = (pollId: string) => {
+    getSocket().emit('unpublish-poll', { pollId });
+  };
+
   const handleSaveEditPoll = (pollId: string) => {
     if (!editPollQuestion.trim()) return;
     getSocket().emit('update-poll', { pollId, question: editPollQuestion.trim() });
@@ -532,6 +536,7 @@ export default function HostRoom() {
                           onPublish={!poll.responsesPublished ? () => handlePublishResponses(poll.id) : undefined}
                           onEdit={() => { setEditingPollId(poll.id); setEditPollQuestion(poll.question); }}
                           onDelete={() => handleDeletePoll(poll.id)}
+                          onUnpublish={() => handleUnpublishPoll(poll.id)}
                         />
                       )}
                     </div>

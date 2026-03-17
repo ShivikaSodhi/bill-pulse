@@ -260,6 +260,17 @@ io.on('connection', (socket) => {
     io.to(room.code).emit('poll-deleted', { pollId });
   });
 
+  socket.on('unpublish-poll', ({ pollId }: { pollId: string }) => {
+    const room = getRoom(socket.data.roomCode);
+    if (!room || !socket.data.isHost) return;
+    const poll = room.polls.find(p => p.id === pollId);
+    if (!poll || poll.isActive) return;
+    reverseScores(room, poll);
+    room.polls = room.polls.filter(p => p.id !== pollId);
+    io.to(room.code).emit('poll-deleted', { pollId });
+    io.to(room.code).emit('leaderboard-updated', { leaderboard: room.leaderboard });
+  });
+
   socket.on('update-poll', ({ pollId, question }: { pollId: string; question: string }) => {
     const room = getRoom(socket.data.roomCode);
     if (!room || !socket.data.isHost) return;
@@ -353,6 +364,19 @@ function awardScores(room: ReturnType<typeof getRoom>, poll: Poll) {
       entry.score += 1000;
     } else {
       room.leaderboard.push({ id: socketId, name: participant.name, score: 1000 });
+    }
+  }
+}
+
+function reverseScores(room: ReturnType<typeof getRoom>, poll: Poll) {
+  if (!room || !poll.correctOptionId) return;
+  for (const [socketId, optionId] of Object.entries(poll.userVotes)) {
+    if (optionId !== poll.correctOptionId) continue;
+    const idx = room.leaderboard.findIndex(e => e.id === socketId);
+    if (idx === -1) continue;
+    room.leaderboard[idx].score -= 1000;
+    if (room.leaderboard[idx].score <= 0) {
+      room.leaderboard.splice(idx, 1);
     }
   }
 }
