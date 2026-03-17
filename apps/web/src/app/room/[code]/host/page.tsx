@@ -61,10 +61,10 @@ function EditPendingForm({
   };
 
   return (
-    <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 space-y-3">
-      <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide">Edit question</p>
+    <div className="bg-[#1a1a2e] border border-brand-500/30 rounded-2xl p-4 space-y-3">
+      <p className="text-xs font-bold text-brand-400 uppercase tracking-widest">Edit question</p>
       <input
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+        className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500"
         value={question}
         onChange={e => setQuestion(e.target.value)}
         placeholder="Question"
@@ -77,11 +77,11 @@ function EditPendingForm({
                 type="button"
                 onClick={() => setCorrectOptionIndex(correctOptionIndex === i ? undefined : i)}
                 className={`w-5 h-5 rounded-full border-2 shrink-0 transition-colors ${
-                  correctOptionIndex === i ? 'bg-green-500 border-green-500' : 'border-gray-300'
+                  correctOptionIndex === i ? 'bg-green-500 border-green-500' : 'border-white/30'
                 }`}
               />
               <input
-                className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 value={opt}
                 onChange={e => updateOption(i, e.target.value)}
                 placeholder={`Option ${i + 1}`}
@@ -93,7 +93,7 @@ function EditPendingForm({
                     if (correctOptionIndex === i) setCorrectOptionIndex(undefined);
                     else if (correctOptionIndex != null && correctOptionIndex > i) setCorrectOptionIndex(correctOptionIndex - 1);
                   }}
-                  className="text-gray-300 hover:text-red-400 text-lg leading-none"
+                  className="text-white/25 hover:text-red-400 text-lg leading-none"
                 >×</button>
               )}
             </div>
@@ -101,17 +101,17 @@ function EditPendingForm({
           {options.length < 6 && (
             <button
               onClick={() => setOptions(prev => [...prev, ''])}
-              className="text-xs text-brand-500 hover:text-brand-700 font-medium"
+              className="text-xs text-brand-400 hover:text-brand-300 font-bold"
             >+ Add option</button>
           )}
         </div>
       )}
       <div className="flex items-center gap-3">
-        <label className="text-xs text-gray-500">Duration:</label>
+        <label className="text-xs text-white/40">Duration:</label>
         <select
           value={duration}
           onChange={e => setDuration(Number(e.target.value))}
-          className="border border-gray-300 rounded px-2 py-1 text-sm"
+          className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-sm text-white"
         >
           <option value={0}>No timer</option>
           <option value={15}>15s</option>
@@ -121,8 +121,8 @@ function EditPendingForm({
         </select>
       </div>
       <div className="flex gap-2 justify-end">
-        <button onClick={onCancel} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200">Cancel</button>
-        <button onClick={save} className="text-sm bg-brand-500 hover:bg-brand-600 text-white font-medium px-3 py-1.5 rounded-lg">Save</button>
+        <button onClick={onCancel} className="text-sm text-white/40 hover:text-white/70 px-3 py-1.5 rounded-lg border border-white/15">Cancel</button>
+        <button onClick={save} className="text-sm bg-brand-500 hover:bg-brand-600 text-white font-bold px-3 py-1.5 rounded-lg">Save</button>
       </div>
     </div>
   );
@@ -353,36 +353,33 @@ export default function HostRoom() {
   const activePolls = polls.filter(p => p.isActive);
   const pastPolls = polls.filter(p => !p.isActive);
 
+  const allPolls = [...activePolls, ...pastPolls];
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-6">
-      <div className="bg-brand-700 text-white px-4 py-4 shadow">
+    <div className="min-h-screen bg-[#0f0f1a] pb-8">
+      {/* Header */}
+      <div className="bg-[#0a0a1a] border-b border-white/5 px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <div className="text-xs text-brand-300 font-semibold uppercase tracking-wide mb-0.5">Host Dashboard</div>
-            <h1 className="font-bold text-xl">{room?.title || 'Loading...'}</h1>
+            <div className="text-xs font-bold text-white/30 uppercase tracking-widest mb-0.5">Host Dashboard</div>
+            <h1 className="font-bold text-xl text-white">{room?.title || 'Loading...'}</h1>
           </div>
           <div className="text-right">
-            <div className="font-mono font-bold text-2xl tracking-widest bg-brand-600 px-3 py-1 rounded-lg">{code}</div>
-            <div className="text-xs text-brand-300 mt-1">{participants} participants</div>
+            <div className="font-mono font-black text-2xl tracking-[0.2em] text-brand-400">{code}</div>
+            <div className="text-xs text-white/30 mt-0.5">{participants} participants</div>
           </div>
         </div>
       </div>
 
-      <div className="bg-brand-50 border-b border-brand-100 px-4 py-2">
-        <p className="max-w-2xl mx-auto text-sm text-brand-700 text-center">
-          Share code <strong className="font-mono">{code}</strong> · Participants go to{' '}
-          <span className="font-mono text-xs bg-white border border-brand-200 px-1 rounded">localhost:3000/room/{code}</span>
-        </p>
-      </div>
-
-      <div className="bg-white border-b sticky top-0 z-10">
+      {/* Tab bar */}
+      <div className="bg-[#0a0a1a] border-b border-white/10 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex">
           {(['polls', 'qa'] as const).map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-3 text-sm font-semibold uppercase tracking-wide border-b-2 transition-colors ${
-                tab === t ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500'
+              className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${
+                tab === t ? 'border-brand-500 text-brand-400' : 'border-transparent text-white/30 hover:text-white/50'
               }`}
             >
               {t === 'polls' ? 'Polls' : `Q&A (${questions.length})`}
@@ -395,28 +392,27 @@ export default function HostRoom() {
         {tab === 'polls' && (
           <>
             {/* Participant count */}
-            <div className="bg-white rounded-xl shadow border border-gray-100 px-4 py-3">
+            <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl px-4 py-3">
               <div className="flex items-center gap-3 mb-2">
-                <span className="relative flex h-3 w-3 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
                 </span>
-                <span className="text-sm font-medium text-gray-700">
-                  <span className="text-2xl font-bold text-gray-900 mr-1">{participants}</span>
+                <span className="text-sm text-white/60">
+                  <span className="text-2xl font-black text-white mr-1">{participants}</span>
                   participant{participants !== 1 ? 's' : ''} joined
                 </span>
               </div>
-              {participantList.length > 0 && (
+              {participantList.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {participantList.map(p => (
-                    <span key={p.id} className="text-xs bg-brand-50 text-brand-700 border border-brand-100 px-2 py-0.5 rounded-full font-medium">
+                    <span key={p.id} className="text-xs bg-brand-500/10 text-brand-300 border border-brand-500/20 px-2.5 py-0.5 rounded-full font-semibold">
                       {p.name}
                     </span>
                   ))}
                 </div>
-              )}
-              {participantList.length === 0 && (
-                <p className="text-xs text-gray-400">Waiting for participants to join...</p>
+              ) : (
+                <p className="text-xs text-white/25">Waiting for participants to join...</p>
               )}
             </div>
 
@@ -425,7 +421,9 @@ export default function HostRoom() {
             {/* Pending queue */}
             {pendingPolls.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-brand-500 uppercase tracking-wide mb-2">Up Next ({pendingPolls.length})</p>
+                <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-2">
+                  Up Next ({pendingPolls.length})
+                </p>
                 <div className="space-y-1.5">
                   {pendingPolls.map((poll, i) => (
                     <div key={i}>
@@ -439,23 +437,23 @@ export default function HostRoom() {
                           onCancel={() => setEditingPendingIndex(null)}
                         />
                       ) : (
-                        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-2.5 border border-gray-100 shadow-sm">
-                          <span className="text-xs text-gray-400 font-mono w-4 shrink-0">{i + 1}.</span>
+                        <div className="flex items-center gap-3 bg-[#1a1a2e] border border-white/10 rounded-xl px-4 py-2.5">
+                          <span className="text-xs text-white/25 font-mono w-4 shrink-0">{i + 1}.</span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">{poll.question}</p>
-                            <p className="text-xs text-gray-400">
+                            <p className="text-sm font-semibold text-white/80 truncate">{poll.question}</p>
+                            <p className="text-xs text-white/30">
                               {poll.pollType === 'multiple-choice' ? `${poll.options.length} options` : 'Open text'}
                               {poll.duration > 0 ? ` · ${poll.duration >= 60 ? `${poll.duration / 60}min` : `${poll.duration}s`}` : ''}
                             </p>
                           </div>
                           <button
                             onClick={() => setEditingPendingIndex(i)}
-                            className="text-gray-300 hover:text-brand-400 text-sm font-medium shrink-0"
+                            className="text-white/20 hover:text-brand-400 text-sm shrink-0 transition-colors"
                             title="Edit"
                           >✏️</button>
                           <button
                             onClick={() => setPendingPolls(prev => prev.filter((_, idx) => idx !== i))}
-                            className="text-gray-300 hover:text-red-400 text-lg leading-none shrink-0"
+                            className="text-white/20 hover:text-red-400 text-lg leading-none shrink-0 transition-colors"
                             title="Remove"
                           >×</button>
                         </div>
@@ -469,8 +467,12 @@ export default function HostRoom() {
             {/* Active polls */}
             {activePolls.length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  </span>
+                  <p className="text-xs font-bold text-green-500 uppercase tracking-widest">
                     Live Polls ({activePolls.length})
                   </p>
                 </div>
@@ -494,6 +496,8 @@ export default function HostRoom() {
                       onClose={() => handleClosePoll(poll.id)}
                       onPublish={() => handlePublishResponses(poll.id)}
                       onReveal={!poll.isRevealed ? () => handleRevealPoll(poll.id) : undefined}
+                      questionNumber={allPolls.indexOf(poll) + 1}
+                      totalQuestions={allPolls.length + pendingPolls.length}
                     />
                   ))}
                 </div>
@@ -503,15 +507,15 @@ export default function HostRoom() {
             {/* Past polls */}
             {pastPolls.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Past Polls</p>
+                <p className="text-xs font-bold text-white/25 uppercase tracking-widest mb-3">Past Polls</p>
                 <div className="space-y-3">
                   {pastPolls.map(poll => (
                     <div key={poll.id}>
                       {editingPollId === poll.id ? (
-                        <div className="bg-white rounded-xl shadow p-4 space-y-3">
-                          <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide">Edit question text</p>
+                        <div className="bg-[#1a1a2e] border border-brand-500/30 rounded-2xl p-4 space-y-3">
+                          <p className="text-xs font-bold text-brand-400 uppercase tracking-widest">Edit question text</p>
                           <input
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                            className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500"
                             value={editPollQuestion}
                             onChange={e => setEditPollQuestion(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && handleSaveEditPoll(poll.id)}
@@ -520,11 +524,11 @@ export default function HostRoom() {
                           <div className="flex gap-2 justify-end">
                             <button
                               onClick={() => { setEditingPollId(null); setEditPollQuestion(''); }}
-                              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200"
+                              className="text-sm text-white/40 hover:text-white/70 px-3 py-1.5 rounded-lg border border-white/15"
                             >Cancel</button>
                             <button
                               onClick={() => handleSaveEditPoll(poll.id)}
-                              className="text-sm bg-brand-500 hover:bg-brand-600 text-white font-medium px-3 py-1.5 rounded-lg"
+                              className="text-sm bg-brand-500 hover:bg-brand-600 text-white font-bold px-3 py-1.5 rounded-lg"
                             >Save</button>
                           </div>
                         </div>
@@ -548,6 +552,8 @@ export default function HostRoom() {
                           onUnpublish={() => handleUnpublishPoll(poll.id)}
                           correctAnswer={correctAnswers[poll.id]}
                           scoredResponseIds={scoredResponseIds[poll.id]}
+                          questionNumber={allPolls.indexOf(poll) + 1}
+                          totalQuestions={allPolls.length + pendingPolls.length}
                         />
                       )}
                     </div>
@@ -558,14 +564,14 @@ export default function HostRoom() {
 
             {/* Leaderboard */}
             {leaderboard.length > 0 && (
-              <div className="bg-white rounded-xl shadow border border-gray-100 px-4 py-3">
-                <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-2">🏆 Leaderboard</p>
-                <div className="space-y-1.5">
+              <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl px-4 py-4">
+                <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3">🏆 Leaderboard</p>
+                <div className="space-y-2">
                   {leaderboard.map((entry, i) => (
-                    <div key={entry.id} className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-gray-400 w-5 text-right">{i + 1}</span>
-                      <span className="flex-1 text-sm font-medium text-gray-800 truncate">{entry.name}</span>
-                      <span className="text-sm font-bold text-yellow-600">{entry.score.toLocaleString()} pts</span>
+                    <div key={entry.id} className="flex items-center gap-3 rounded-xl px-3 py-2 bg-white/5">
+                      <span className="text-sm font-black text-white/30 w-5 text-right">{i + 1}</span>
+                      <span className="flex-1 text-sm font-semibold text-white/75 truncate">{entry.name}</span>
+                      <span className="text-sm font-black text-amber-400">{entry.score.toLocaleString()} pts</span>
                     </div>
                   ))}
                 </div>
@@ -573,9 +579,9 @@ export default function HostRoom() {
             )}
 
             {activePolls.length === 0 && pastPolls.length === 0 && (
-              <div className="text-center py-12 text-gray-400">
-                <div className="text-4xl mb-2">📊</div>
-                <p>Create your first poll above</p>
+              <div className="text-center py-16 text-white/25">
+                <div className="text-5xl mb-3">📊</div>
+                <p className="font-bold text-lg">Create your first poll above</p>
               </div>
             )}
           </>

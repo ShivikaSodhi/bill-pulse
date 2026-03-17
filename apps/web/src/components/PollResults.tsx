@@ -1,18 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-interface Option {
-  id: string;
-  text: string;
-  votes: number;
-}
-
-export interface TextResponse {
-  id: string;
-  text: string;
-  author: string;
-  createdAt: number;
-}
+interface Option { id: string; text: string; votes: number; }
+export interface TextResponse { id: string; text: string; author: string; createdAt: number; }
 
 interface PollResultsProps {
   question: string;
@@ -42,11 +32,21 @@ interface PollResultsProps {
   correctAnswer?: string;
   scoredResponseIds?: string[];
   myTextResponseId?: string;
+  questionNumber?: number;
+  totalQuestions?: number;
 }
+
+const OPTION_COLORS = [
+  { btn: 'bg-red-500 hover:bg-red-400 active:bg-red-600 shadow-red-500/25',    result: 'border-red-500/30 bg-red-500/10',    bar: 'bg-red-500',    letter: 'A' },
+  { btn: 'bg-blue-500 hover:bg-blue-400 active:bg-blue-600 shadow-blue-500/25', result: 'border-blue-500/30 bg-blue-500/10',   bar: 'bg-blue-500',   letter: 'B' },
+  { btn: 'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 shadow-emerald-500/25', result: 'border-emerald-500/30 bg-emerald-500/10', bar: 'bg-emerald-500', letter: 'C' },
+  { btn: 'bg-amber-500 hover:bg-amber-400 active:bg-amber-600 shadow-amber-500/25',   result: 'border-amber-500/30 bg-amber-500/10',   bar: 'bg-amber-500',   letter: 'D' },
+  { btn: 'bg-purple-500 hover:bg-purple-400 active:bg-purple-600 shadow-purple-500/25', result: 'border-purple-500/30 bg-purple-500/10', bar: 'bg-purple-500', letter: 'E' },
+  { btn: 'bg-pink-500 hover:bg-pink-400 active:bg-pink-600 shadow-pink-500/25',   result: 'border-pink-500/30 bg-pink-500/10',   bar: 'bg-pink-500',   letter: 'F' },
+];
 
 function Countdown({ endsAt }: { endsAt: number }) {
   const [remaining, setRemaining] = useState(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
-
   useEffect(() => {
     if (remaining <= 0) return;
     const id = setInterval(() => {
@@ -56,15 +56,15 @@ function Countdown({ endsAt }: { endsAt: number }) {
     }, 500);
     return () => clearInterval(id);
   }, [endsAt, remaining]);
-
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
   const display = mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`;
   const urgent = remaining <= 10;
-
   return (
-    <span className={`font-mono font-bold text-sm px-2 py-0.5 rounded ${
-      urgent ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-700'
+    <span className={`font-mono font-bold text-sm px-2.5 py-1 rounded-lg border ${
+      urgent
+        ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
+        : 'bg-white/10 text-white/70 border-white/20'
     }`}>
       {display}
     </span>
@@ -103,10 +103,12 @@ export function PollResults({
   correctAnswer,
   scoredResponseIds = [],
   myTextResponseId,
+  questionNumber,
+  totalQuestions,
 }: PollResultsProps) {
   const [inputText, setInputText] = useState('');
   const total = options.reduce((s, o) => s + o.votes, 0);
-  const max = Math.max(...options.map(o => o.votes), 1);
+  const canVote = isActive && !!onVote && !myVote;
 
   const handleTextSubmit = () => {
     if (!inputText.trim() || !onTextResponse) return;
@@ -115,313 +117,347 @@ export function PollResults({
   };
 
   const visibleResponses = isHost || responsesPublished ? textResponses : [];
-  // Sort text responses by submission time (fastest first)
   const sortedResponses = [...visibleResponses].sort((a, b) => a.createdAt - b.createdAt);
 
+  // unused but kept for potential future use
+  void duration;
+
   return (
-    <div className="bg-white rounded-xl shadow p-5 space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold text-gray-800 text-lg leading-tight">{question}</h3>
-        <div className="flex items-center gap-2 shrink-0">
-          {isActive && endsAt && <Countdown endsAt={endsAt} />}
-          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-            isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+    <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl overflow-hidden">
+
+      {/* ── Header bar ── */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          {questionNumber != null && totalQuestions != null && (
+            <span className="text-xs font-bold text-white/40 tracking-widest uppercase">
+              Q{questionNumber}
+              <span className="text-white/20"> / {totalQuestions}</span>
+            </span>
+          )}
+          <span className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${
+            isActive
+              ? 'bg-green-500/15 text-green-400 border-green-500/30'
+              : 'bg-white/5 text-white/25 border-white/10'
           }`}>
-            {isActive ? 'Live' : 'Closed'}
+            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+            {isActive ? 'LIVE' : 'CLOSED'}
           </span>
-          {/* Host edit/delete/unpublish buttons for past polls */}
+        </div>
+        <div className="flex items-center gap-2">
+          {isActive && endsAt && <Countdown endsAt={endsAt} />}
+          {/* Host controls for past polls */}
           {isHost && !isActive && (
             <div className="flex items-center gap-1">
               {onEdit && (
                 <button
                   onClick={onEdit}
-                  className="text-gray-400 hover:text-brand-500 p-1 rounded transition-colors"
                   title="Edit question"
-                >
-                  ✏️
-                </button>
+                  className="text-white/25 hover:text-white/70 p-1.5 rounded-lg hover:bg-white/5 transition-colors text-sm"
+                >✏️</button>
               )}
               {onUnpublish && (
                 <button
                   onClick={onUnpublish}
-                  className="text-xs text-orange-400 hover:text-orange-600 font-medium border border-orange-200 hover:border-orange-400 px-2 py-0.5 rounded transition-colors"
-                  title="Remove poll and reverse scores"
-                >
-                  Unpublish
-                </button>
+                  title="Reset all responses and reverse scores"
+                  className="text-xs text-brand-400 hover:text-brand-300 font-bold border border-brand-500/30 hover:border-brand-400/50 px-2.5 py-1 rounded-lg transition-colors"
+                >Reset</button>
               )}
               {onDelete && (
                 <button
                   onClick={onDelete}
-                  className="text-gray-400 hover:text-red-500 p-1 rounded transition-colors"
-                  title="Delete poll (keeps scores)"
-                >
-                  🗑
-                </button>
+                  title="Delete poll"
+                  className="text-white/25 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors text-sm"
+                >🗑</button>
               )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Image — hidden from participants until poll is revealed */}
-      {imageBase64 && (isRevealed || isHost) && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={imageBase64} alt="poll" className="w-full max-h-56 object-cover rounded-lg border border-gray-100" />
-      )}
-      {imageBase64 && !isRevealed && !isHost && (
-        <div className="w-full h-24 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center">
-          <span className="text-sm text-gray-400">Image hidden until question is revealed</span>
-        </div>
-      )}
+      <div className="p-5 space-y-5">
 
-      {/* Multiple choice */}
-      {type === 'multiple-choice' && (
-        <>
-          <div className="space-y-3">
-            {options.map(option => {
-              const pct = total > 0 ? Math.round((option.votes / total) * 100) : 0;
-              const isLeader = option.votes === max && option.votes > 0;
-              const voted = myVote === option.id;
-              const isCorrect = correctOptionId === option.id;
-              const canVote = isActive && onVote && !myVote;
-
-              return (
-                <div key={option.id}>
-                  {canVote ? (
-                    <button onClick={() => onVote!(option.id)} className="w-full text-left group">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-brand-600">{option.text}</span>
-                        <span className="text-xs text-gray-400">{option.votes}</span>
-                      </div>
-                      <div className="relative h-9 bg-gray-100 rounded-lg overflow-hidden group-hover:bg-gray-200 transition-colors">
-                        <div className="absolute inset-y-0 left-0 bg-brand-500 rounded-lg transition-all duration-500 opacity-30" style={{ width: `${pct}%` }} />
-                        <span className="absolute inset-0 flex items-center px-3 text-xs text-gray-600">Click to vote</span>
-                      </div>
-                    </button>
-                  ) : (
-                    <div className={`rounded-lg ${isCorrect ? 'ring-2 ring-green-400' : ''}`}>
-                      <div className="flex items-center justify-between mb-1 px-0.5">
-                        <span className={`text-sm font-medium flex items-center gap-1.5 ${isCorrect ? 'text-green-700' : voted ? 'text-brand-600' : 'text-gray-700'}`}>
-                          {isCorrect && <span className="text-green-500 font-bold">✓</span>}
-                          {voted && !isCorrect && <span className="text-brand-500">●</span>}
-                          {option.text}
-                        </span>
-                        <span className="text-xs text-gray-500">{pct}% · {option.votes}</span>
-                      </div>
-                      <div className="h-6 bg-gray-100 rounded-lg overflow-hidden">
-                        <div className={`h-full rounded-lg transition-all duration-700 ${
-                          isCorrect ? 'bg-green-500' : isLeader ? 'bg-brand-500' : 'bg-brand-300'
-                        }`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        {/* Image */}
+        {imageBase64 && (isRevealed || isHost) && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageBase64} alt="poll" className="w-full max-h-56 object-cover rounded-xl border border-white/10" />
+        )}
+        {imageBase64 && !isRevealed && !isHost && (
+          <div className="w-full h-20 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center">
+            <span className="text-sm text-white/25">Image hidden until revealed</span>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              {!isActive && correctOptionId && myVote && (
-                myVote === correctOptionId
-                  ? <span className="text-sm font-semibold text-green-600">+1000 pts</span>
-                  : <span className="text-sm text-red-400">Incorrect</span>
-              )}
-            </div>
-            <p className="text-xs text-gray-400">{total} total votes</p>
-          </div>
+        )}
 
-          {/* Host: per-user answer breakdown, ordered by response time */}
-          {isHost && !isActive && voterDetails && voterDetails.length > 0 && (
-            <div className="border-t border-gray-100 pt-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                Responses ({voterDetails.length}) — ordered by speed
-              </p>
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {options.map(opt => {
-                  const voters = voterDetails.filter(v => v.optionId === opt.id);
-                  if (voters.length === 0) return null;
+        {/* Question text */}
+        <h3 className="text-xl font-bold text-white leading-snug">{question}</h3>
+
+        {/* ── Multiple choice ── */}
+        {type === 'multiple-choice' && (
+          <>
+            {canVote ? (
+              /* Pre-vote: big coloured grid */
+              <div className="grid grid-cols-2 gap-3">
+                {options.map((option, i) => {
+                  const c = OPTION_COLORS[i % OPTION_COLORS.length];
                   return (
-                    <div key={opt.id} className="mb-2">
-                      <p className={`text-xs font-semibold mb-1 ${correctOptionId === opt.id ? 'text-green-600' : 'text-gray-500'}`}>
-                        {correctOptionId === opt.id ? '✓ ' : ''}{opt.text}
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {voters.map((v, i) => (
-                          <span key={i} className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${
-                            correctOptionId === opt.id ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {v.name}
-                            {v.responseTime != null && (
-                              <span className="opacity-60">{fmt(v.responseTime)}</span>
-                            )}
-                          </span>
-                        ))}
+                    <button
+                      key={option.id}
+                      onClick={() => onVote!(option.id)}
+                      className={`${c.btn} rounded-2xl p-4 text-left shadow-lg transition-all duration-150 active:scale-95 min-h-[4.5rem]`}
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-black/25 flex items-center justify-center font-black text-white text-xs mb-3">
+                        {c.letter}
                       </div>
-                    </div>
+                      <p className="text-white font-bold text-sm leading-snug">{option.text}</p>
+                    </button>
                   );
                 })}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Open text */}
-      {type === 'open-text' && (
-        <div className="space-y-3">
-          {/* Participant input */}
-          {!isHost && isActive && (
-            myTextResponse ? (
-              <div className="bg-brand-50 border border-brand-200 rounded-lg px-3 py-2 text-sm text-brand-700">
-                Your answer: <span className="font-medium">{myTextResponse}</span>
               </div>
             ) : (
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder="Type your answer..."
-                  value={inputText}
-                  onChange={e => setInputText(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleTextSubmit()}
-                />
-                <button
-                  onClick={handleTextSubmit}
-                  disabled={!inputText.trim()}
-                  className="bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white px-3 rounded-lg text-sm font-medium transition-colors"
-                >
-                  Submit
-                </button>
-              </div>
-            )
-          )}
-
-          {/* Participant: score result after close */}
-          {!isHost && !isActive && myTextResponseId && (
-            scoredResponseIds.includes(myTextResponseId)
-              ? <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                  <span className="text-green-600 font-bold text-sm">+1000 pts</span>
-                  <span className="text-green-700 text-sm">Your answer matched!</span>
-                </div>
-              : myTextResponse
-                ? <p className="text-sm text-gray-400 text-center py-1">No match this round</p>
-                : null
-          )}
-
-          {/* Participant: waiting for publish */}
-          {!isHost && isActive && myTextResponse && (
-            <p className="text-sm text-gray-400 text-center py-2">Waiting for host to close & publish...</p>
-          )}
-
-          {/* Host: reference answer + response count + publish button */}
-          {isHost && (
-            <div className="space-y-2">
-              {correctAnswer && (
-                <div className="flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-lg px-3 py-2">
-                  <span className="text-xs font-semibold text-brand-600 shrink-0">Reference:</span>
-                  <span className="text-sm text-brand-800 font-medium">{correctAnswer}</span>
-                </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">
-                  {textResponses.length} response{textResponses.length !== 1 ? 's' : ''}
-                  {scoredResponseIds.length > 0 && (
-                    <span className="ml-1.5 text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full">
-                      {scoredResponseIds.length} scored
-                    </span>
-                  )}
-                </span>
-                {/* Publish only after poll closes */}
-                {!isActive && !responsesPublished && onPublish && (
-                  <button
-                    onClick={onPublish}
-                    disabled={textResponses.length === 0}
-                    className="text-sm bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    Publish Responses
-                  </button>
-                )}
-                {isActive && onPublish && (
-                  <span className="text-xs text-gray-400">Close poll to publish</span>
-                )}
-                {responsesPublished && (
-                  <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-1 rounded-full">Published</span>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Responses list — sorted by submission time */}
-          {sortedResponses.length > 0 && (
-            <div className="space-y-2">
-              {!isHost && responsesPublished && (
-                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Responses revealed</p>
-              )}
-              {isHost && (
-                <p className="text-xs text-gray-400">Ordered by submission time</p>
-              )}
-              <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                {sortedResponses.map((r, i) => {
-                  const isScored = scoredResponseIds.includes(r.id);
-                  const isOwn = myTextResponseId === r.id;
+              /* Post-vote / host view: result tiles */
+              <div className="grid grid-cols-2 gap-3">
+                {options.map((option, i) => {
+                  const c = OPTION_COLORS[i % OPTION_COLORS.length];
+                  const pct = total > 0 ? Math.round((option.votes / total) * 100) : 0;
+                  const isCorrect = correctOptionId === option.id;
+                  const voted = myVote === option.id;
                   return (
-                    <div key={r.id} className={`rounded-lg px-3 py-2 ${isScored ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm text-gray-800 flex-1">{r.text}</p>
-                        {isScored && (
-                          <span className="text-xs bg-green-500 text-white font-bold px-1.5 py-0.5 rounded shrink-0">+1000</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className={`text-xs ${isOwn ? 'text-brand-500 font-medium' : 'text-gray-400'}`}>
-                          {r.author}{isOwn ? ' (you)' : ''}
+                    <div
+                      key={option.id}
+                      className={`relative rounded-2xl p-4 border overflow-hidden min-h-[4.5rem] ${
+                        isCorrect
+                          ? 'border-green-400/50 bg-green-500/10'
+                          : `${c.result} ${voted ? 'ring-1 ring-white/20' : ''}`
+                      }`}
+                    >
+                      {/* Bar fill */}
+                      <div
+                        className={`absolute inset-y-0 left-0 ${isCorrect ? 'bg-green-500' : c.bar} opacity-20 transition-all duration-700`}
+                        style={{ width: `${pct}%` }}
+                      />
+                      <div className="relative">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs mb-2 text-white ${
+                          isCorrect ? 'bg-green-500' : `${c.bar} opacity-80`
+                        }`}>
+                          {isCorrect ? '✓' : c.letter}
+                        </div>
+                        <p className={`text-sm font-bold leading-snug ${
+                          isCorrect ? 'text-green-300' : voted ? 'text-white' : 'text-white/55'
+                        }`}>
+                          {option.text}
                         </p>
-                        {isHost && revealedAt != null && (
-                          <span className="text-xs text-brand-400 font-mono">
-                            {fmt(r.createdAt - revealedAt)}
-                          </span>
-                        )}
-                        {isHost && (
-                          <span className="text-xs text-gray-300">#{i + 1}</span>
-                        )}
+                        <p className={`text-xs mt-1 font-mono ${isCorrect ? 'text-green-400/70' : 'text-white/30'}`}>
+                          {pct}% · {option.votes}
+                        </p>
                       </div>
                     </div>
                   );
                 })}
               </div>
+            )}
+
+            {/* Score feedback + vote total */}
+            <div className="flex items-center justify-between">
+              <div>
+                {!isActive && correctOptionId && myVote && (
+                  myVote === correctOptionId
+                    ? <span className="text-sm font-black text-green-400">+1000 pts ✓</span>
+                    : <span className="text-sm font-bold text-red-400">Incorrect</span>
+                )}
+              </div>
+              <p className="text-xs text-white/25">{total} vote{total !== 1 ? 's' : ''}</p>
             </div>
-          )}
 
-          {isHost && textResponses.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-3">Waiting for responses...</p>
-          )}
-        </div>
-      )}
+            {/* Host voter breakdown */}
+            {isHost && !isActive && voterDetails && voterDetails.length > 0 && (
+              <div className="border-t border-white/10 pt-4 space-y-3">
+                <p className="text-xs font-bold text-white/30 uppercase tracking-widest">
+                  Responses — fastest first
+                </p>
+                <div className="space-y-3 max-h-52 overflow-y-auto">
+                  {options.map((opt, i) => {
+                    const c = OPTION_COLORS[i % OPTION_COLORS.length];
+                    const voters = voterDetails.filter(v => v.optionId === opt.id);
+                    if (voters.length === 0) return null;
+                    const isCorrectOpt = correctOptionId === opt.id;
+                    return (
+                      <div key={opt.id}>
+                        <p className={`text-xs font-bold mb-1.5 ${isCorrectOpt ? 'text-green-400' : 'text-white/40'}`}>
+                          {isCorrectOpt ? '✓ ' : ''}{opt.text}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {voters.map((v, j) => (
+                            <span key={j} className={`text-xs px-2 py-0.5 rounded-full font-medium border flex items-center gap-1 ${
+                              isCorrectOpt
+                                ? 'bg-green-500/15 text-green-300 border-green-500/25'
+                                : `${c.result} text-white/50`
+                            }`}>
+                              {v.name}
+                              {v.responseTime != null && (
+                                <span className="opacity-50">{fmt(v.responseTime)}</span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
-      {/* Host controls */}
-      {isHost && isActive && (
-        <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-          <div className="flex items-center gap-2">
-            {!isRevealed && onReveal && (
+        {/* ── Open text ── */}
+        {type === 'open-text' && (
+          <div className="space-y-3">
+            {/* Participant input */}
+            {!isHost && isActive && (
+              myTextResponse ? (
+                <div className="bg-brand-500/10 border border-brand-500/30 rounded-xl px-4 py-3 text-sm text-brand-300">
+                  Your answer: <span className="font-bold text-brand-200">{myTextResponse}</span>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                    placeholder="Type your answer..."
+                    value={inputText}
+                    onChange={e => setInputText(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleTextSubmit()}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleTextSubmit}
+                    disabled={!inputText.trim()}
+                    className="bg-brand-500 hover:bg-brand-600 disabled:opacity-30 text-white px-4 rounded-xl text-sm font-bold transition-colors"
+                  >
+                    Submit
+                  </button>
+                </div>
+              )
+            )}
+
+            {!isHost && isActive && myTextResponse && (
+              <p className="text-sm text-white/30 text-center">Waiting for host to close & publish...</p>
+            )}
+
+            {/* Participant score result after close */}
+            {!isHost && !isActive && myTextResponseId && (
+              scoredResponseIds.includes(myTextResponseId)
+                ? <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-xl px-4 py-3">
+                    <span className="text-green-400 font-black text-sm">+1000 pts</span>
+                    <span className="text-green-300 text-sm">Your answer matched!</span>
+                  </div>
+                : myTextResponse
+                  ? <p className="text-sm text-white/30 text-center py-1">No match this round</p>
+                  : null
+            )}
+
+            {/* Host: reference answer + publish control */}
+            {isHost && (
+              <div className="space-y-2">
+                {correctAnswer && (
+                  <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/30 rounded-xl px-4 py-2.5">
+                    <span className="text-xs font-bold text-brand-400 shrink-0 uppercase tracking-widest">Answer:</span>
+                    <span className="text-sm text-brand-200 font-semibold">{correctAnswer}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-white/40">
+                    {textResponses.length} response{textResponses.length !== 1 ? 's' : ''}
+                    {scoredResponseIds.length > 0 && (
+                      <span className="ml-2 text-xs bg-green-500/15 text-green-400 border border-green-500/25 font-bold px-1.5 py-0.5 rounded-full">
+                        {scoredResponseIds.length} matched
+                      </span>
+                    )}
+                  </span>
+                  {!isActive && !responsesPublished && onPublish && (
+                    <button
+                      onClick={onPublish}
+                      disabled={textResponses.length === 0}
+                      className="text-xs bg-green-500 hover:bg-green-600 disabled:opacity-30 text-white font-bold px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Publish Responses
+                    </button>
+                  )}
+                  {isActive && onPublish && (
+                    <span className="text-xs text-white/25">Close poll first</span>
+                  )}
+                  {responsesPublished && (
+                    <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/25 font-bold px-2 py-1 rounded-full">
+                      Published
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Responses list */}
+            {sortedResponses.length > 0 && (
+              <div className="space-y-2">
+                {!isHost && responsesPublished && (
+                  <p className="text-xs font-bold text-white/30 uppercase tracking-widest">Responses</p>
+                )}
+                <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                  {sortedResponses.map((r, i) => {
+                    const isScored = scoredResponseIds.includes(r.id);
+                    const isOwn = myTextResponseId === r.id;
+                    return (
+                      <div key={r.id} className={`rounded-xl px-3 py-2.5 border ${
+                        isScored ? 'bg-green-500/10 border-green-500/25' : 'bg-white/5 border-white/10'
+                      }`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm text-white/75 flex-1">{r.text}</p>
+                          {isScored && (
+                            <span className="text-xs bg-green-500 text-white font-black px-2 py-0.5 rounded shrink-0">+1000</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className={`text-xs ${isOwn ? 'text-brand-400 font-semibold' : 'text-white/30'}`}>
+                            {r.author}{isOwn ? ' (you)' : ''}
+                          </p>
+                          {isHost && revealedAt != null && (
+                            <span className="text-xs text-white/20 font-mono">{fmt(r.createdAt - revealedAt)}</span>
+                          )}
+                          {isHost && <span className="text-xs text-white/15">#{i + 1}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {isHost && textResponses.length === 0 && (
+              <p className="text-sm text-white/25 text-center py-3">Waiting for responses...</p>
+            )}
+          </div>
+        )}
+
+        {/* ── Host active controls ── */}
+        {isHost && isActive && (
+          <div className="flex items-center justify-between pt-3 border-t border-white/10">
+            <div>
+              {!isRevealed && onReveal && (
+                <button
+                  onClick={onReveal}
+                  className="text-sm bg-brand-500 hover:bg-brand-600 text-white font-bold px-5 py-2 rounded-xl transition-colors shadow-lg shadow-brand-500/25"
+                >
+                  Reveal Question
+                </button>
+              )}
+            </div>
+            {onClose && (
               <button
-                onClick={onReveal}
-                className="text-xs bg-brand-500 hover:bg-brand-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                onClick={onClose}
+                className="text-xs text-red-400 hover:text-red-300 font-bold border border-red-500/30 hover:border-red-400/50 px-3 py-1.5 rounded-lg transition-colors"
               >
-                Reveal Question
+                Close Poll
               </button>
             )}
           </div>
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="text-xs text-red-500 hover:text-red-700 font-medium border border-red-200 px-2 py-1 rounded"
-            >
-              Close Poll
-            </button>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
