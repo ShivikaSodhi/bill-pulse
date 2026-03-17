@@ -64,7 +64,7 @@ export default function Home() {
         <div>
           <p className="text-white/30 text-xs font-medium uppercase tracking-widest mb-6">Live polling</p>
           <h1 className="text-4xl font-semibold text-white leading-snug tracking-tight mb-4">
-            Ask your audience.<br />See answers instantly.
+            No more next<br />Slide Please...
           </h1>
           <p className="text-white/40 text-sm leading-relaxed max-w-xs">
             Polls, open-ended questions, and Q&A — no logins, no friction.

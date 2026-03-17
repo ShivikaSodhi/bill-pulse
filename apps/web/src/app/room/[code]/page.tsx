@@ -58,10 +58,17 @@ export default function ParticipantRoom() {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket.connected) socket.connect();
 
-    setSocketId(socket.id || '');
-    socket.on('connect', () => setSocketId(socket.id || ''));
+    // Rejoin on every (re)connect so server always has this socket in the room
+    const savedName = localStorage.getItem(`name:${code}`);
+    const rejoin = () => {
+      setSocketId(socket.id || '');
+      if (savedName) {
+        socket.emit('join-room', { code, name: savedName });
+      }
+    };
+
+    socket.on('connect', rejoin);
 
     socket.on('room-joined', ({ room }: { room: Room }) => {
       setJoining(false);
@@ -143,16 +150,20 @@ export default function ParticipantRoom() {
 
     socket.on('participants-updated', ({ count }: { count: number }) => setParticipants(count));
 
-    // Auto-join if name is already saved, otherwise show join form
-    const savedName = localStorage.getItem(`name:${code}`);
+    // Connect and join (or show form if no name yet)
     if (savedName) {
-      socket.emit('join-room', { code, name: savedName });
+      if (socket.connected) {
+        rejoin();
+      } else {
+        socket.connect();
+      }
     } else {
       setShowJoinForm(true);
+      if (!socket.connected) socket.connect();
     }
 
     return () => {
-      socket.off('connect');
+      socket.off('connect', rejoin);
       socket.off('room-joined');
       socket.off('join-error');
       socket.off('poll-created');
@@ -169,6 +180,7 @@ export default function ParticipantRoom() {
       socket.off('participants-updated');
       socket.off('poll-deleted');
       socket.off('text-response-submitted');
+      socket.disconnect();
     };
   }, [code]);
 
