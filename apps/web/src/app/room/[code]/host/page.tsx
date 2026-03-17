@@ -128,6 +128,118 @@ function EditPendingForm({
   );
 }
 
+// Modal for editing a past (closed) poll
+function EditPollModal({
+  poll,
+  correctAnswer: initialCorrectAnswer,
+  onSave,
+  onClose,
+}: {
+  poll: { id: string; question: string; type: string; options: { id: string; text: string }[]; correctOptionId?: string };
+  correctAnswer?: string;
+  onSave: (data: { question: string; correctOptionId?: string; correctAnswer?: string }) => void;
+  onClose: () => void;
+}) {
+  const [question, setQuestion] = useState(poll.question);
+  const [correctOptionId, setCorrectOptionId] = useState<string | undefined>(poll.correctOptionId);
+  const [correctAnswer, setCorrectAnswer] = useState(initialCorrectAnswer ?? '');
+
+  const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-pink-500'];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-[#1a1a2e] border border-white/10 rounded-3xl overflow-hidden">
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <h2 className="text-lg font-black text-white">Edit Poll</h2>
+          <button onClick={onClose} className="text-white/30 hover:text-white text-2xl leading-none transition-colors">×</button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+          {/* Question */}
+          <div>
+            <label className="text-xs font-bold text-white/40 uppercase tracking-widest block mb-2">Question</label>
+            <textarea
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+              rows={3}
+              value={question}
+              onChange={e => setQuestion(e.target.value)}
+              placeholder="Question text..."
+            />
+          </div>
+
+          {/* MC: mark correct option */}
+          {poll.type === 'multiple-choice' && poll.options.length > 0 && (
+            <div>
+              <label className="text-xs font-bold text-white/40 uppercase tracking-widest block mb-2">
+                Correct Option <span className="text-white/20 normal-case">(tap to toggle)</span>
+              </label>
+              <div className="space-y-2">
+                {poll.options.map((opt, i) => {
+                  const isCorrect = correctOptionId === opt.id;
+                  const color = OPTION_COLORS[i % OPTION_COLORS.length];
+                  const letter = OPTION_LETTERS[i] ?? String(i + 1);
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setCorrectOptionId(isCorrect ? undefined : opt.id)}
+                      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 border transition-all text-left ${
+                        isCorrect
+                          ? 'border-green-400/60 bg-green-500/10'
+                          : 'border-white/10 bg-white/5 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className={`w-7 h-7 rounded-lg ${color} flex items-center justify-center font-black text-white text-xs shrink-0`}>
+                        {isCorrect ? '✓' : letter}
+                      </div>
+                      <span className={`text-sm font-semibold flex-1 ${isCorrect ? 'text-green-300' : 'text-white/70'}`}>
+                        {opt.text}
+                      </span>
+                      {isCorrect && <span className="text-xs text-green-400 font-bold">Correct</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Open text: correct answer */}
+          {poll.type === 'open-text' && (
+            <div>
+              <label className="text-xs font-bold text-white/40 uppercase tracking-widest block mb-2">Reference Answer</label>
+              <input
+                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                value={correctAnswer}
+                onChange={e => setCorrectAnswer(e.target.value)}
+                placeholder="Expected answer (exact match, case/space insensitive)"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-4 border-t border-white/10">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl border border-white/15 text-sm font-bold text-white/50 hover:text-white/80 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave({ question: question.trim(), correctOptionId, correctAnswer: correctAnswer.trim() || undefined })}
+            disabled={!question.trim()}
+            className="flex-1 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-30 text-sm font-black text-white transition-colors"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HostRoom() {
   const { code } = useParams<{ code: string }>();
   const [room, setRoom] = useState<Room | null>(null);
@@ -145,7 +257,6 @@ export default function HostRoom() {
 
   // Edit state for past polls
   const [editingPollId, setEditingPollId] = useState<string | null>(null);
-  const [editPollQuestion, setEditPollQuestion] = useState('');
   // Edit state for pending polls
   const [editingPendingIndex, setEditingPendingIndex] = useState<number | null>(null);
 
@@ -261,8 +372,9 @@ export default function HostRoom() {
       setVoterDetails(prev => { const n = { ...prev }; delete n[pollId]; return n; });
     });
 
-    socket.on('poll-updated', ({ pollId, question }: { pollId: string; question: string }) => {
-      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, question } : p));
+    socket.on('poll-updated', ({ pollId, question, correctOptionId, correctAnswer }: { pollId: string; question: string; correctOptionId?: string; correctAnswer?: string }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, question, correctOptionId: correctOptionId ?? p.correctOptionId } : p));
+      if (correctAnswer !== undefined) setCorrectAnswers(prev => ({ ...prev, [pollId]: correctAnswer }));
     });
 
     socket.on('question-added', ({ question }: { question: Question }) => {
@@ -335,11 +447,10 @@ export default function HostRoom() {
     getSocket().emit('unpublish-poll', { pollId });
   };
 
-  const handleSaveEditPoll = (pollId: string) => {
-    if (!editPollQuestion.trim()) return;
-    getSocket().emit('update-poll', { pollId, question: editPollQuestion.trim() });
+  const handleSaveEditPoll = (pollId: string, data: { question: string; correctOptionId?: string; correctAnswer?: string }) => {
+    if (!data.question.trim()) return;
+    getSocket().emit('update-poll', { pollId, question: data.question, correctOptionId: data.correctOptionId ?? null, correctAnswer: data.correctAnswer ?? null });
     setEditingPollId(null);
-    setEditPollQuestion('');
   };
 
   const handleArchive = (questionId: string) => {
@@ -354,9 +465,19 @@ export default function HostRoom() {
   const pastPolls = polls.filter(p => !p.isActive);
 
   const allPolls = [...activePolls, ...pastPolls];
+  const editingPoll = editingPollId ? polls.find(p => p.id === editingPollId) : null;
 
   return (
     <div className="min-h-screen bg-[#0f0f1a] pb-8">
+      {/* Edit poll modal */}
+      {editingPoll && (
+        <EditPollModal
+          poll={editingPoll}
+          correctAnswer={correctAnswers[editingPoll.id]}
+          onClose={() => setEditingPollId(null)}
+          onSave={(data) => handleSaveEditPoll(editingPoll.id, data)}
+        />
+      )}
       {/* Header */}
       <div className="bg-[#0a0a1a] border-b border-white/5 px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
@@ -510,53 +631,29 @@ export default function HostRoom() {
                 <p className="text-xs font-bold text-white/25 uppercase tracking-widest mb-3">Past Polls</p>
                 <div className="space-y-3">
                   {pastPolls.map(poll => (
-                    <div key={poll.id}>
-                      {editingPollId === poll.id ? (
-                        <div className="bg-[#1a1a2e] border border-brand-500/30 rounded-2xl p-4 space-y-3">
-                          <p className="text-xs font-bold text-brand-400 uppercase tracking-widest">Edit question text</p>
-                          <input
-                            className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                            value={editPollQuestion}
-                            onChange={e => setEditPollQuestion(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleSaveEditPoll(poll.id)}
-                            autoFocus
-                          />
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              onClick={() => { setEditingPollId(null); setEditPollQuestion(''); }}
-                              className="text-sm text-white/40 hover:text-white/70 px-3 py-1.5 rounded-lg border border-white/15"
-                            >Cancel</button>
-                            <button
-                              onClick={() => handleSaveEditPoll(poll.id)}
-                              className="text-sm bg-brand-500 hover:bg-brand-600 text-white font-bold px-3 py-1.5 rounded-lg"
-                            >Save</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <PollResults
-                          question={poll.question}
-                          type={poll.type}
-                          options={poll.options}
-                          textResponses={poll.textResponses}
-                          imageBase64={poll.imageBase64}
-                          isActive={false}
-                          isRevealed={poll.isRevealed}
-                          responsesPublished={poll.responsesPublished}
-                          isHost={true}
-                          revealedAt={poll.revealedAt}
-                          correctOptionId={poll.correctOptionId}
-                          voterDetails={voterDetails[poll.id]}
-                          onPublish={!poll.responsesPublished ? () => handlePublishResponses(poll.id) : undefined}
-                          onEdit={() => { setEditingPollId(poll.id); setEditPollQuestion(poll.question); }}
-                          onDelete={() => handleDeletePoll(poll.id)}
-                          onUnpublish={() => handleUnpublishPoll(poll.id)}
-                          correctAnswer={correctAnswers[poll.id]}
-                          scoredResponseIds={scoredResponseIds[poll.id]}
-                          questionNumber={allPolls.indexOf(poll) + 1}
-                          totalQuestions={allPolls.length + pendingPolls.length}
-                        />
-                      )}
-                    </div>
+                    <PollResults
+                      key={poll.id}
+                      question={poll.question}
+                      type={poll.type}
+                      options={poll.options}
+                      textResponses={poll.textResponses}
+                      imageBase64={poll.imageBase64}
+                      isActive={false}
+                      isRevealed={poll.isRevealed}
+                      responsesPublished={poll.responsesPublished}
+                      isHost={true}
+                      revealedAt={poll.revealedAt}
+                      correctOptionId={poll.correctOptionId}
+                      voterDetails={voterDetails[poll.id]}
+                      onPublish={!poll.responsesPublished ? () => handlePublishResponses(poll.id) : undefined}
+                      onEdit={() => setEditingPollId(poll.id)}
+                      onDelete={() => handleDeletePoll(poll.id)}
+                      onUnpublish={() => handleUnpublishPoll(poll.id)}
+                      correctAnswer={correctAnswers[poll.id]}
+                      scoredResponseIds={scoredResponseIds[poll.id]}
+                      questionNumber={allPolls.indexOf(poll) + 1}
+                      totalQuestions={allPolls.length + pendingPolls.length}
+                    />
                   ))}
                 </div>
               </div>

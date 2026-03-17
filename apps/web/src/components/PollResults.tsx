@@ -71,6 +71,38 @@ function Countdown({ endsAt }: { endsAt: number }) {
   );
 }
 
+function TimerBar({ endsAt, duration }: { endsAt: number; duration: number }) {
+  const calc = () => Math.max(0, (endsAt - Date.now()) / 1000);
+  const [remaining, setRemaining] = useState(calc);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const r = calc();
+      setRemaining(r);
+      if (r <= 0) clearInterval(id);
+    }, 100);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endsAt]);
+  const pct = duration > 0 ? (remaining / duration) * 100 : 0;
+  const urgent = remaining <= 10;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-white/30 font-medium uppercase tracking-widest">Time left</span>
+        <span className={`font-mono font-black text-base ${urgent ? 'text-red-400 animate-pulse' : 'text-white/70'}`}>
+          {Math.ceil(remaining)}s
+        </span>
+      </div>
+      <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-100 ${urgent ? 'bg-red-500' : 'bg-brand-500'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function fmt(ms: number) {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
 }
@@ -118,9 +150,6 @@ export function PollResults({
 
   const visibleResponses = isHost || responsesPublished ? textResponses : [];
   const sortedResponses = [...visibleResponses].sort((a, b) => a.createdAt - b.createdAt);
-
-  // unused but kept for potential future use
-  void duration;
 
   return (
     <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl overflow-hidden">
@@ -189,6 +218,11 @@ export function PollResults({
 
         {/* Question text */}
         <h3 className="text-xl font-bold text-white leading-snug">{question}</h3>
+
+        {/* Timer progress bar — shown for both host and participants */}
+        {isActive && endsAt && duration && duration > 0 && (
+          <TimerBar endsAt={endsAt} duration={duration} />
+        )}
 
         {/* ── Multiple choice ── */}
         {type === 'multiple-choice' && (

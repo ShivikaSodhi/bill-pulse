@@ -308,13 +308,17 @@ io.on('connection', (socket) => {
     io.to(room.code).emit('leaderboard-updated', { leaderboard: room.leaderboard });
   });
 
-  socket.on('update-poll', ({ pollId, question }: { pollId: string; question: string }) => {
+  socket.on('update-poll', ({ pollId, question, correctOptionId, correctAnswer }: {
+    pollId: string; question: string; correctOptionId?: string | null; correctAnswer?: string | null;
+  }) => {
     const room = getRoom(socket.data.roomCode);
     if (!room || !socket.data.isHost) return;
     const poll = room.polls.find(p => p.id === pollId);
     if (!poll) return;
     poll.question = question.trim();
-    io.to(room.code).emit('poll-updated', { pollId, question: poll.question });
+    if (correctOptionId !== undefined) poll.correctOptionId = correctOptionId || undefined;
+    if (correctAnswer !== undefined) poll.correctAnswer = correctAnswer?.trim() || undefined;
+    io.to(room.code).emit('poll-updated', { pollId, question: poll.question, correctOptionId: poll.correctOptionId, correctAnswer: poll.correctAnswer });
   });
 
   socket.on('submit-question', ({ text }: { text: string }) => {

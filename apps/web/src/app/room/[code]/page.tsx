@@ -21,6 +21,7 @@ interface Poll {
   isActive: boolean;
   isRevealed: boolean;
   responsesPublished: boolean;
+  duration: number;
   endsAt?: number;
   revealedAt?: number;
   correctOptionId?: string;
@@ -33,6 +34,7 @@ interface Room {
   participants: number;
   polls: Poll[];
   questions: Question[];
+  leaderboard?: { id: string; name: string; score: number }[];
 }
 
 export default function ParticipantRoom() {
@@ -74,6 +76,7 @@ export default function ParticipantRoom() {
       setPolls(room.polls);
       setQuestions(room.questions);
       setParticipants(room.participants);
+      if (room.leaderboard) setLeaderboard([...room.leaderboard].sort((a, b) => b.score - a.score));
     });
 
     socket.on('join-error', ({ message }: { message: string }) => {
@@ -399,6 +402,7 @@ export default function ParticipantRoom() {
                       myVote={myVotes[poll.id]}
                       myTextResponse={myTextResponses[poll.id]}
                       myTextResponseId={myTextResponseIds[poll.id]}
+                      duration={poll.duration}
                       onVote={(optionId) => handleVote(poll.id, optionId)}
                       onTextResponse={(text) => handleTextResponse(poll.id, text)}
                       questionNumber={polls.indexOf(poll) + 1}
