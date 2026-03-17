@@ -232,13 +232,6 @@ export default function ParticipantRoom() {
     }));
   };
 
-  // Auto-advance to latest when a new question is revealed (unless user navigated back)
-  useEffect(() => {
-    const visible = polls.filter(p => !p.isActive || p.isRevealed);
-    if (autoAdvanceRef.current && visible.length > 0) {
-      setViewIndex(visible.length - 1);
-    }
-  }, [polls]);
 
   // Show join form if no name saved yet (direct URL access)
   if (showJoinForm && !room) {
