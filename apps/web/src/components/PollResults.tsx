@@ -39,6 +39,9 @@ interface PollResultsProps {
   onDelete?: () => void;
   onEdit?: () => void;
   onUnpublish?: () => void;
+  correctAnswer?: string;
+  scoredResponseIds?: string[];
+  myTextResponseId?: string;
 }
 
 function Countdown({ endsAt }: { endsAt: number }) {
@@ -97,6 +100,9 @@ export function PollResults({
   onDelete,
   onEdit,
   onUnpublish,
+  correctAnswer,
+  scoredResponseIds = [],
+  myTextResponseId,
 }: PollResultsProps) {
   const [inputText, setInputText] = useState('');
   const total = options.reduce((s, o) => s + o.votes, 0);
@@ -291,29 +297,58 @@ export function PollResults({
             )
           )}
 
-          {/* Participant: waiting for publish */}
-          {!isHost && myTextResponse && !responsesPublished && (
-            <p className="text-sm text-gray-400 text-center py-2">Waiting for host to publish responses...</p>
+          {/* Participant: score result after close */}
+          {!isHost && !isActive && myTextResponseId && (
+            scoredResponseIds.includes(myTextResponseId)
+              ? <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                  <span className="text-green-600 font-bold text-sm">+1000 pts</span>
+                  <span className="text-green-700 text-sm">Your answer matched!</span>
+                </div>
+              : myTextResponse
+                ? <p className="text-sm text-gray-400 text-center py-1">No match this round</p>
+                : null
           )}
 
-          {/* Host: response count + publish button */}
+          {/* Participant: waiting for publish */}
+          {!isHost && isActive && myTextResponse && (
+            <p className="text-sm text-gray-400 text-center py-2">Waiting for host to close & publish...</p>
+          )}
+
+          {/* Host: reference answer + response count + publish button */}
           {isHost && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">
-                {textResponses.length} response{textResponses.length !== 1 ? 's' : ''} received
-              </span>
-              {!responsesPublished && onPublish && (
-                <button
-                  onClick={onPublish}
-                  disabled={textResponses.length === 0}
-                  className="text-sm bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  Publish Responses
-                </button>
+            <div className="space-y-2">
+              {correctAnswer && (
+                <div className="flex items-center gap-2 bg-brand-50 border border-brand-200 rounded-lg px-3 py-2">
+                  <span className="text-xs font-semibold text-brand-600 shrink-0">Reference:</span>
+                  <span className="text-sm text-brand-800 font-medium">{correctAnswer}</span>
+                </div>
               )}
-              {responsesPublished && (
-                <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-1 rounded-full">Published</span>
-              )}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">
+                  {textResponses.length} response{textResponses.length !== 1 ? 's' : ''}
+                  {scoredResponseIds.length > 0 && (
+                    <span className="ml-1.5 text-xs bg-green-100 text-green-700 font-medium px-1.5 py-0.5 rounded-full">
+                      {scoredResponseIds.length} scored
+                    </span>
+                  )}
+                </span>
+                {/* Publish only after poll closes */}
+                {!isActive && !responsesPublished && onPublish && (
+                  <button
+                    onClick={onPublish}
+                    disabled={textResponses.length === 0}
+                    className="text-sm bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    Publish Responses
+                  </button>
+                )}
+                {isActive && onPublish && (
+                  <span className="text-xs text-gray-400">Close poll to publish</span>
+                )}
+                {responsesPublished && (
+                  <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-1 rounded-full">Published</span>
+                )}
+              </div>
             </div>
           )}
 
@@ -327,22 +362,33 @@ export function PollResults({
                 <p className="text-xs text-gray-400">Ordered by submission time</p>
               )}
               <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                {sortedResponses.map((r, i) => (
-                  <div key={r.id} className="bg-gray-50 rounded-lg px-3 py-2">
-                    <p className="text-sm text-gray-800">{r.text}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xs text-gray-400">{r.author}</p>
-                      {isHost && revealedAt != null && (
-                        <span className="text-xs text-brand-400 font-mono">
-                          {fmt(r.createdAt - revealedAt)}
-                        </span>
-                      )}
-                      {isHost && (
-                        <span className="text-xs text-gray-300">#{i + 1}</span>
-                      )}
+                {sortedResponses.map((r, i) => {
+                  const isScored = scoredResponseIds.includes(r.id);
+                  const isOwn = myTextResponseId === r.id;
+                  return (
+                    <div key={r.id} className={`rounded-lg px-3 py-2 ${isScored ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm text-gray-800 flex-1">{r.text}</p>
+                        {isScored && (
+                          <span className="text-xs bg-green-500 text-white font-bold px-1.5 py-0.5 rounded shrink-0">+1000</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className={`text-xs ${isOwn ? 'text-brand-500 font-medium' : 'text-gray-400'}`}>
+                          {r.author}{isOwn ? ' (you)' : ''}
+                        </p>
+                        {isHost && revealedAt != null && (
+                          <span className="text-xs text-brand-400 font-mono">
+                            {fmt(r.createdAt - revealedAt)}
+                          </span>
+                        )}
+                        {isHost && (
+                          <span className="text-xs text-gray-300">#{i + 1}</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

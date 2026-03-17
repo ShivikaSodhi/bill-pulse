@@ -45,6 +45,8 @@ export default function ParticipantRoom() {
   const [qText, setQText] = useState('');
   const [myVotes, setMyVotes] = useState<Record<string, string>>({});
   const [myTextResponses, setMyTextResponses] = useState<Record<string, string>>({});
+  const [myTextResponseIds, setMyTextResponseIds] = useState<Record<string, string>>({});
+  const [scoredResponseIds, setScoredResponseIds] = useState<Record<string, string[]>>({});
   const [socketId, setSocketId] = useState<string>('');
   const [error, setError] = useState('');
   const [nameInput, setNameInput] = useState('');
@@ -83,8 +85,18 @@ export default function ParticipantRoom() {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, options } : p));
     });
 
-    socket.on('poll-closed', ({ pollId, correctOptionId }: { pollId: string; correctOptionId?: string }) => {
+    socket.on('poll-closed', ({ pollId, correctOptionId, scoredResponseIds: scored }: { pollId: string; correctOptionId?: string; scoredResponseIds?: string[] }) => {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false, correctOptionId } : p));
+      if (scored) setScoredResponseIds(prev => ({ ...prev, [pollId]: scored }));
+    });
+
+    socket.on('poll-deleted', ({ pollId }: { pollId: string }) => {
+      setPolls(prev => prev.filter(p => p.id !== pollId));
+    });
+
+    // Server tells the submitter their response ID for scoring tracking
+    socket.on('text-response-submitted', ({ pollId, responseId }: { pollId: string; responseId: string }) => {
+      setMyTextResponseIds(prev => ({ ...prev, [pollId]: responseId }));
     });
 
     socket.on('leaderboard-updated', ({ leaderboard }: { leaderboard: { id: string; name: string; score: number }[] }) => {
@@ -122,10 +134,11 @@ export default function ParticipantRoom() {
       ));
     });
 
-    socket.on('responses-published', ({ pollId, textResponses }: { pollId: string; textResponses: TextResponse[] }) => {
+    socket.on('responses-published', ({ pollId, textResponses, scoredResponseIds: scored }: { pollId: string; textResponses: TextResponse[]; scoredResponseIds?: string[] }) => {
       setPolls(prev => prev.map(p =>
         p.id === pollId ? { ...p, responsesPublished: true, textResponses } : p
       ));
+      if (scored) setScoredResponseIds(prev => ({ ...prev, [pollId]: scored }));
     });
 
     socket.on('participants-updated', ({ count }: { count: number }) => setParticipants(count));
@@ -154,6 +167,8 @@ export default function ParticipantRoom() {
       socket.off('text-response-added');
       socket.off('responses-published');
       socket.off('participants-updated');
+      socket.off('poll-deleted');
+      socket.off('text-response-submitted');
     };
   }, [code]);
 
@@ -402,8 +417,10 @@ export default function ParticipantRoom() {
                   endsAt={currentPoll.isActive ? currentPoll.endsAt : undefined}
                   revealedAt={currentPoll.revealedAt}
                   correctOptionId={currentPoll.correctOptionId}
+                  scoredResponseIds={scoredResponseIds[currentPoll.id]}
                   myVote={myVotes[currentPoll.id]}
                   myTextResponse={myTextResponses[currentPoll.id]}
+                  myTextResponseId={myTextResponseIds[currentPoll.id]}
                   onVote={currentPoll.isActive ? (optionId) => handleVote(currentPoll.id, optionId) : undefined}
                   onTextResponse={currentPoll.isActive ? (text) => handleTextResponse(currentPoll.id, text) : undefined}
                 />

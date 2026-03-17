@@ -8,6 +8,7 @@ export interface TextResponse {
   id: string;
   text: string;
   author: string;
+  socketId: string;   // internal — stripped before sending to clients
   createdAt: number;
 }
 
@@ -26,8 +27,10 @@ export interface Poll {
   revealedAt?: number;
   createdAt: number;
   correctOptionId?: string;
-  userVotes: Record<string, string>;       // socketId -> optionId
-  userVoteTimes: Record<string, number>;   // socketId -> ms since revealedAt
+  correctAnswer?: string;          // reference answer for open-text scoring
+  scoredResponseIds: string[];     // text response IDs that scored
+  userVotes: Record<string, string>;
+  userVoteTimes: Record<string, number>;
 }
 
 export interface Question {

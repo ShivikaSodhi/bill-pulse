@@ -138,6 +138,8 @@ export default function HostRoom() {
   const [pendingPolls, setPendingPolls] = useState<QuestionData[]>([]);
   const [leaderboard, setLeaderboard] = useState<{ id: string; name: string; score: number }[]>([]);
   const [voterDetails, setVoterDetails] = useState<Record<string, { name: string; optionId: string; optionText: string; responseTime?: number }[]>>({});
+  const [scoredResponseIds, setScoredResponseIds] = useState<Record<string, string[]>>({});
+  const [correctAnswers, setCorrectAnswers] = useState<Record<string, string>>({});
   const [tab, setTab] = useState<'polls' | 'qa'>('polls');
   const [socketId, setSocketId] = useState('');
 
@@ -194,13 +196,14 @@ export default function HostRoom() {
       }
     });
 
-    // Host-only: image + correct answer for a poll (not sent to participants)
-    socket.on('poll-host-metadata', ({ pollId, correctOptionId, imageBase64 }: { pollId: string; correctOptionId?: string; imageBase64?: string }) => {
+    // Host-only: image + correct answer metadata
+    socket.on('poll-host-metadata', ({ pollId, correctOptionId, correctAnswer, imageBase64 }: { pollId: string; correctOptionId?: string; correctAnswer?: string; imageBase64?: string }) => {
       setPolls(prev => prev.map(p => p.id === pollId ? {
         ...p,
         ...(correctOptionId ? { correctOptionId } : {}),
         ...(imageBase64 ? { imageBase64 } : {}),
       } : p));
+      if (correctAnswer) setCorrectAnswers(prev => ({ ...prev, [pollId]: correctAnswer }));
     });
 
     socket.on('vote-update', ({ pollId, options }: { pollId: string; options: PollOption[] }) => {
@@ -213,8 +216,13 @@ export default function HostRoom() {
       ));
     });
 
-    socket.on('responses-published', ({ pollId }: { pollId: string }) => {
-      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, responsesPublished: true } : p));
+    socket.on('responses-published', ({ pollId, textResponses, scoredResponseIds: scored }: { pollId: string; textResponses?: import('@/components/PollResults').TextResponse[]; scoredResponseIds?: string[] }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? {
+        ...p,
+        responsesPublished: true,
+        ...(textResponses ? { textResponses } : {}),
+      } : p));
+      if (scored) setScoredResponseIds(prev => ({ ...prev, [pollId]: scored }));
     });
 
     socket.on('leaderboard-updated', ({ leaderboard }: { leaderboard: { id: string; name: string; score: number }[] }) => {
@@ -225,13 +233,14 @@ export default function HostRoom() {
       setVoterDetails(prev => ({ ...prev, [pollId]: voterDetails }));
     });
 
-    socket.on('poll-closed', ({ pollId, correctOptionId }: { pollId: string; correctOptionId?: string }) => {
+    socket.on('poll-closed', ({ pollId, correctOptionId, scoredResponseIds: scored }: { pollId: string; correctOptionId?: string; scoredResponseIds?: string[] }) => {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false, correctOptionId: correctOptionId ?? p.correctOptionId } : p));
+      if (scored && scored.length > 0) setScoredResponseIds(prev => ({ ...prev, [pollId]: scored }));
       const next = pendingPollsRef.current[0];
       if (next) {
         setPendingPolls(prev => prev.slice(1));
         autoRevealRef.current = true;
-        getSocket().emit('create-poll', { question: next.question, type: next.pollType, options: next.options, imageBase64: next.imageBase64, duration: next.duration, correctOptionIndex: next.correctOptionIndex });
+        getSocket().emit('create-poll', { question: next.question, type: next.pollType, options: next.options, imageBase64: next.imageBase64, duration: next.duration, correctOptionIndex: next.correctOptionIndex, correctAnswer: next.correctAnswer });
       }
     });
 
@@ -301,7 +310,7 @@ export default function HostRoom() {
   const handleCreatePoll = (questions: QuestionData[]) => {
     if (questions.length === 0) return;
     const [first, ...rest] = questions;
-    getSocket().emit('create-poll', { question: first.question, type: first.pollType, options: first.options, imageBase64: first.imageBase64, duration: first.duration, correctOptionIndex: first.correctOptionIndex });
+    getSocket().emit('create-poll', { question: first.question, type: first.pollType, options: first.options, imageBase64: first.imageBase64, duration: first.duration, correctOptionIndex: first.correctOptionIndex, correctAnswer: first.correctAnswer });
     if (rest.length > 0) setPendingPolls(prev => [...prev, ...rest]);
   };
 
@@ -537,6 +546,8 @@ export default function HostRoom() {
                           onEdit={() => { setEditingPollId(poll.id); setEditPollQuestion(poll.question); }}
                           onDelete={() => handleDeletePoll(poll.id)}
                           onUnpublish={() => handleUnpublishPoll(poll.id)}
+                          correctAnswer={correctAnswers[poll.id]}
+                          scoredResponseIds={scoredResponseIds[poll.id]}
                         />
                       )}
                     </div>

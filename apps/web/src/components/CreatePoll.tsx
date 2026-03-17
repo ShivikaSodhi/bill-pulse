@@ -16,6 +16,7 @@ export interface QuestionData {
   pollType: PollType;
   options: string[];
   correctOptionIndex?: number;
+  correctAnswer?: string;
   imageBase64?: string;
   duration: number;
 }
@@ -30,6 +31,7 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
   const [pollType, setPollType] = useState<PollType>('multiple-choice');
   const [options, setOptions] = useState(['', '']);
   const [correctOptionIndex, setCorrectOptionIndex] = useState<number | undefined>();
+  const [correctAnswer, setCorrectAnswer] = useState('');
   const [imageBase64, setImageBase64] = useState<string | undefined>();
   const [imagePreview, setImagePreview] = useState<string | undefined>();
   const [duration, setDuration] = useState(0);
@@ -70,13 +72,14 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
       if (validOptions.length < 2) return null;
       return { question: question.trim(), pollType, options: validOptions, correctOptionIndex, imageBase64, duration };
     }
-    return { question: question.trim(), pollType, options: [], imageBase64, duration };
+    return { question: question.trim(), pollType, options: [], correctAnswer: correctAnswer.trim() || undefined, imageBase64, duration };
   };
 
   const resetForm = () => {
     setQuestion('');
     setOptions(['', '']);
     setCorrectOptionIndex(undefined);
+    setCorrectAnswer('');
     setImageBase64(undefined);
     setImagePreview(undefined);
     setDuration(0);
@@ -285,9 +288,22 @@ export function CreatePoll({ onCreatePoll }: CreatePollProps) {
           )}
 
           {pollType === 'open-text' && (
-            <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-              Participants type a free-text answer. Responses are hidden until you publish them.
-            </p>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reference answer <span className="text-gray-400 font-normal">(optional — enables scoring)</span>
+                </label>
+                <input
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+                  placeholder="e.g. Paris"
+                  value={correctAnswer}
+                  onChange={e => setCorrectAnswer(e.target.value)}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  The closest matching answer(s) get +1000 pts. Uses fuzzy matching — typos are OK.
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Actions */}
