@@ -237,8 +237,8 @@ export default function ParticipantRoom() {
   };
 
 
-  // Show join form if no name saved yet (direct URL access)
-  if (showJoinForm && !room) {
+  // Show join form when: no name yet, OR an error occurred (so user can retry / go home)
+  if ((showJoinForm || (error && !room)) && !room) {
     return (
       <div className="min-h-screen bg-mesh flex flex-col items-center justify-center p-6">
         {/* Logo */}

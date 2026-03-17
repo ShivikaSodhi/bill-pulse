@@ -42,7 +42,6 @@ export default function Home() {
     socket.once('join-error', ({ message }: { message: string }) => {
       setError(message);
       setLoading(false);
-      socket.disconnect();
     });
     socket.emit('join-room', { code: joinCode.toUpperCase().trim(), name: joinName.trim() });
   };

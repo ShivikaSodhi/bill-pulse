@@ -416,15 +416,11 @@ export default function HostRoom() {
   // Edit state for pending polls
   const [editingPendingIndex, setEditingPendingIndex] = useState<number | null>(null);
 
-  const initialized = useRef(false);
   const pendingPollsRef = useRef<QuestionData[]>([]);
 
   useEffect(() => { pendingPollsRef.current = pendingPolls; }, [pendingPolls]);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
     const socket = getSocket();
     if (!socket.connected) socket.connect();
     setSocketId(socket.id || '');

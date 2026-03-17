@@ -114,7 +114,7 @@ export function PollResults({
   textResponses = [],
   imageBase64,
   isActive,
-  isRevealed = true,
+  isRevealed = false,
   responsesPublished = false,
   isHost = false,
   duration,
