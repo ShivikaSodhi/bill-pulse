@@ -53,8 +53,6 @@ export default function ParticipantRoom() {
   const [joining, setJoining] = useState(false);
   const [showJoinForm, setShowJoinForm] = useState(false);
   const [leaderboard, setLeaderboard] = useState<{ id: string; name: string; score: number }[]>([]);
-  const [viewIndex, setViewIndex] = useState(0);
-  const autoAdvanceRef = useRef(true);
 
   useEffect(() => {
     const socket = getSocket();
