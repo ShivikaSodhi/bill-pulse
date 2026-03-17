@@ -289,17 +289,33 @@ export function PollResults({
               </div>
             )}
 
-            {/* Score feedback + vote total */}
-            <div className="flex items-center justify-between">
-              <div>
-                {!isActive && correctOptionId && myVote && (
-                  myVote === correctOptionId
-                    ? <span className="text-sm font-black text-green-600">+1000 pts ✓</span>
-                    : <span className="text-sm font-bold text-red-500">Incorrect</span>
-                )}
+            {/* Correct/incorrect feedback card for participant */}
+            {!isHost && !isActive && myVote && correctOptionId && (
+              myVote === correctOptionId ? (
+                <div className="bg-green-50 border-2 border-green-200 rounded-2xl px-4 py-3 text-center">
+                  <p className="text-2xl mb-1">🎉</p>
+                  <p className="font-black text-green-700 text-lg">Correct! +1000 pts</p>
+                </div>
+              ) : (
+                <div className="bg-red-50 border-2 border-red-200 rounded-2xl px-4 py-3 text-center">
+                  <p className="text-2xl mb-1">😅</p>
+                  <p className="font-black text-red-600 text-lg">Incorrect</p>
+                </div>
+              )
+            )}
+
+            {/* Correct answer banner — shown to everyone when poll closes */}
+            {!isActive && correctOptionId && (
+              <div className="bg-green-50 border-2 border-green-200 rounded-2xl px-4 py-3 text-center">
+                <p className="text-xs font-bold text-green-600 uppercase tracking-widest mb-1">Correct Answer</p>
+                <p className="text-lg font-black text-green-800">
+                  {options.find(o => o.id === correctOptionId)?.text}
+                </p>
               </div>
-              <p className="text-xs text-gray-400">{total} vote{total !== 1 ? 's' : ''}</p>
-            </div>
+            )}
+
+            {/* Vote total */}
+            <p className="text-xs text-gray-400 text-right">{total} vote{total !== 1 ? 's' : ''}</p>
 
             {/* Host voter breakdown */}
             {isHost && !isActive && voterDetails && voterDetails.length > 0 && (
@@ -385,6 +401,14 @@ export function PollResults({
                 : myTextResponse
                   ? <p className="text-sm text-gray-400 text-center py-1">No match this round</p>
                   : null
+            )}
+
+            {/* Correct answer banner for participants when poll is closed */}
+            {!isHost && !isActive && correctAnswer && (
+              <div className="bg-green-50 border-2 border-green-200 rounded-2xl px-4 py-3 text-center">
+                <p className="text-xs font-bold text-green-600 uppercase tracking-widest mb-1">Correct Answer</p>
+                <p className="text-lg font-black text-green-800">{correctAnswer}</p>
+              </div>
             )}
 
             {/* Host: reference answer + publish control */}

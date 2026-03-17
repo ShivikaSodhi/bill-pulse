@@ -71,13 +71,13 @@ io.on('connection', (socket) => {
     if (!isHost) {
       const alreadyJoined = room.participantList.some(p => p.id === socket.id);
       if (!alreadyJoined) {
-        room.participants++;
         room.participantList.push({ id: socket.id, name });
       }
     }
+    room.participants = room.participantList.length;
 
     socket.emit('room-joined', { room: serializeRoom(room) });
-    io.to(room.code).emit('participants-updated', { count: room.participants, list: room.participantList });
+    io.to(room.code).emit('participants-updated', { count: room.participantList.length, list: room.participantList });
   });
 
   socket.on('create-poll', ({
@@ -157,11 +157,10 @@ io.on('connection', (socket) => {
           io.to(room.code).emit('poll-closed', {
             pollId,
             correctOptionId: p.correctOptionId,
+            correctAnswer: p.correctAnswer,
             scoredResponseIds: p.scoredResponseIds,
           });
-          if (p.correctOptionId || p.scoredResponseIds.length > 0) {
-            io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
-          }
+          io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
           io.to(r!.hostId).emit('poll-voter-details', { pollId, voterDetails: getVoterDetails(r!, p) });
         }
       }, poll.duration * 1000);
@@ -185,11 +184,10 @@ io.on('connection', (socket) => {
         io.to(room.code).emit('poll-closed', {
           pollId,
           correctOptionId: p.correctOptionId,
+          correctAnswer: p.correctAnswer,
           scoredResponseIds: p.scoredResponseIds,
         });
-        if (p.correctOptionId || p.scoredResponseIds.length > 0) {
-          io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
-        }
+        io.to(room.code).emit('leaderboard-updated', { leaderboard: r!.leaderboard });
         io.to(r!.hostId).emit('poll-voter-details', { pollId, voterDetails: getVoterDetails(r!, p) });
       }
     }, poll.duration * 1000);
@@ -266,11 +264,10 @@ io.on('connection', (socket) => {
       io.to(room.code).emit('poll-closed', {
         pollId,
         correctOptionId: poll.correctOptionId,
+        correctAnswer: poll.correctAnswer,
         scoredResponseIds: poll.scoredResponseIds,
       });
-      if (poll.correctOptionId || poll.scoredResponseIds.length > 0) {
-        io.to(room.code).emit('leaderboard-updated', { leaderboard: room.leaderboard });
-      }
+      io.to(room.code).emit('leaderboard-updated', { leaderboard: room.leaderboard });
       socket.emit('poll-voter-details', { pollId, voterDetails: getVoterDetails(room, poll) });
     }
   });
@@ -355,9 +352,9 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const room = getRoom(socket.data.roomCode);
     if (room && !socket.data.isHost) {
-      room.participants = Math.max(0, room.participants - 1);
       room.participantList = room.participantList.filter(p => p.id !== socket.id);
-      io.to(room.code).emit('participants-updated', { count: room.participants, list: room.participantList });
+      room.participants = room.participantList.length;
+      io.to(room.code).emit('participants-updated', { count: room.participantList.length, list: room.participantList });
     }
   });
 });
@@ -451,7 +448,7 @@ function serializeRoom(room: ReturnType<typeof getRoom>) {
       ...p,
       userVotes: undefined,
       userVoteTimes: undefined,
-      correctAnswer: undefined,          // never expose to clients via room snapshot
+      correctAnswer: p.isActive ? undefined : p.correctAnswer,
       correctOptionId: p.isActive ? undefined : p.correctOptionId,
       imageBase64: p.isRevealed ? p.imageBase64 : undefined,
       textResponses: p.textResponses.map(stripResponse),

@@ -25,6 +25,7 @@ interface Poll {
   endsAt?: number;
   revealedAt?: number;
   correctOptionId?: string;
+  correctAnswer?: string;
 }
 
 interface Room {
@@ -93,8 +94,8 @@ export default function ParticipantRoom() {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, options } : p));
     });
 
-    socket.on('poll-closed', ({ pollId, correctOptionId, scoredResponseIds: scored }: { pollId: string; correctOptionId?: string; scoredResponseIds?: string[] }) => {
-      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false, correctOptionId } : p));
+    socket.on('poll-closed', ({ pollId, correctOptionId, correctAnswer, scoredResponseIds: scored }: { pollId: string; correctOptionId?: string; correctAnswer?: string; scoredResponseIds?: string[] }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, isActive: false, correctOptionId, ...(correctAnswer ? { correctAnswer } : {}) } : p));
       if (scored) setScoredResponseIds(prev => ({ ...prev, [pollId]: scored }));
     });
 
@@ -336,6 +337,8 @@ export default function ParticipantRoom() {
   const pastPolls = polls.filter(p => !p.isActive);
   // Game over: no active polls but some polls have been played
   const gameOver = !polls.some(p => p.isActive) && pastPolls.length > 0;
+  // Most recently closed poll — shown between questions
+  const lastClosedPoll = pastPolls[pastPolls.length - 1] ?? null;
 
   const hasActivePoll = polls.some(p => p.isActive);
 
@@ -400,6 +403,7 @@ export default function ParticipantRoom() {
                   endsAt={currentPoll.endsAt}
                   revealedAt={currentPoll.revealedAt}
                   correctOptionId={currentPoll.correctOptionId}
+                  correctAnswer={currentPoll.correctAnswer}
                   scoredResponseIds={scoredResponseIds[currentPoll.id]}
                   myVote={myVotes[currentPoll.id]}
                   myTextResponse={myTextResponses[currentPoll.id]}
@@ -413,12 +417,52 @@ export default function ParticipantRoom() {
               </div>
             )}
 
-            {/* Waiting for next question */}
+            {/* Between questions: show last poll results + leaderboard */}
             {!currentPoll && hasUnrevealedActive && (
-              <div className="text-center py-14">
-                <div className="w-10 h-10 border-2 border-brand-300 border-t-brand-500 rounded-full animate-spin mx-auto mb-4" />
-                <p className="font-bold text-gray-700 text-xl">Get ready...</p>
-                <p className="text-sm text-gray-400 mt-1">Next question coming up</p>
+              <div className="space-y-4">
+                {/* Last closed poll results */}
+                {lastClosedPoll && (
+                  <PollResults
+                    question={lastClosedPoll.question}
+                    type={lastClosedPoll.type}
+                    options={lastClosedPoll.options}
+                    textResponses={lastClosedPoll.textResponses}
+                    isActive={false}
+                    isRevealed={lastClosedPoll.isRevealed}
+                    responsesPublished={lastClosedPoll.responsesPublished}
+                    correctOptionId={lastClosedPoll.correctOptionId}
+                    correctAnswer={lastClosedPoll.correctAnswer}
+                    scoredResponseIds={scoredResponseIds[lastClosedPoll.id]}
+                    myVote={myVotes[lastClosedPoll.id]}
+                    myTextResponse={myTextResponses[lastClosedPoll.id]}
+                    myTextResponseId={myTextResponseIds[lastClosedPoll.id]}
+                    questionNumber={polls.indexOf(lastClosedPoll) + 1}
+                    totalQuestions={polls.length}
+                  />
+                )}
+
+                {/* Current leaderboard standings */}
+                {leaderboard.length > 0 && (
+                  <div className="bg-white border-2 border-amber-100 rounded-2xl p-4 shadow-sm">
+                    <p className="text-xs font-bold text-amber-500 uppercase tracking-widest mb-3">🏆 Current Standings</p>
+                    <div className="space-y-2">
+                      {leaderboard.map((entry, i) => (
+                        <div key={entry.id} className={`flex items-center gap-3 rounded-xl px-3 py-2 ${entry.id === socketId ? 'bg-pink-50 border border-pink-200' : 'bg-gray-50'}`}>
+                          <span className="text-sm font-black text-gray-400 w-5 text-right">{i + 1}</span>
+                          <span className="flex-1 text-sm font-semibold text-gray-800 truncate">
+                            {entry.name}{entry.id === socketId ? ' (you)' : ''}
+                          </span>
+                          <span className="text-sm font-black text-amber-500">{entry.score.toLocaleString()} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-center py-4">
+                  <div className="w-8 h-8 border-2 border-brand-300 border-t-brand-500 rounded-full animate-spin mx-auto mb-3" />
+                  <p className="font-bold text-gray-600">Next question coming up...</p>
+                </div>
               </div>
             )}
 
