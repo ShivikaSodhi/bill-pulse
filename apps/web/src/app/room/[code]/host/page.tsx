@@ -36,7 +36,24 @@ interface Room {
   participants: number;
 }
 
-// Inline edit form for a pending poll
+const OPTION_PALETTE = [
+  { bg: 'bg-pink-400',    ring: 'ring-pink-400',    light: 'bg-pink-50 border-pink-200',    letter: 'A' },
+  { bg: 'bg-violet-400',  ring: 'ring-violet-400',  light: 'bg-violet-50 border-violet-200', letter: 'B' },
+  { bg: 'bg-rose-400',    ring: 'ring-rose-400',    light: 'bg-rose-50 border-rose-200',    letter: 'C' },
+  { bg: 'bg-purple-400',  ring: 'ring-purple-400',  light: 'bg-purple-50 border-purple-200', letter: 'D' },
+  { bg: 'bg-fuchsia-400', ring: 'ring-fuchsia-400', light: 'bg-fuchsia-50 border-fuchsia-200', letter: 'E' },
+  { bg: 'bg-indigo-400',  ring: 'ring-indigo-400',  light: 'bg-indigo-50 border-indigo-200', letter: 'F' },
+];
+
+const TIMER_OPTIONS = [
+  { label: 'No timer', value: 0 },
+  { label: '15s', value: 15 },
+  { label: '30s', value: 30 },
+  { label: '1 min', value: 60 },
+  { label: '2 min', value: 120 },
+];
+
+// Slido-inspired modal editor for a pending (not-yet-launched) poll
 function EditPendingForm({
   data,
   onSave,
@@ -49,93 +66,178 @@ function EditPendingForm({
   const [question, setQuestion] = useState(data.question);
   const [options, setOptions] = useState<string[]>(data.options.length > 0 ? data.options : ['', '']);
   const [correctOptionIndex, setCorrectOptionIndex] = useState<number | undefined>(data.correctOptionIndex);
+  const [correctAnswer, setCorrectAnswer] = useState(data.correctAnswer ?? '');
   const [duration, setDuration] = useState(data.duration);
 
   const updateOption = (i: number, val: string) => {
     setOptions(prev => prev.map((o, idx) => idx === i ? val : o));
   };
 
+  const removeOption = (i: number) => {
+    setOptions(prev => prev.filter((_, idx) => idx !== i));
+    if (correctOptionIndex === i) setCorrectOptionIndex(undefined);
+    else if (correctOptionIndex != null && correctOptionIndex > i) setCorrectOptionIndex(correctOptionIndex - 1);
+  };
+
   const save = () => {
     if (!question.trim()) return;
-    onSave({ ...data, question: question.trim(), options, correctOptionIndex, duration });
+    onSave({ ...data, question: question.trim(), options, correctOptionIndex, correctAnswer: correctAnswer.trim() || undefined, duration });
   };
 
   return (
-    <div className="bg-white border-2 border-pink-200 rounded-2xl p-4 space-y-3 shadow-sm">
-      <p className="text-xs font-bold text-brand-600 uppercase tracking-widest">Edit question</p>
-      <input
-        className="w-full bg-gray-50 border border-pink-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-        value={question}
-        onChange={e => setQuestion(e.target.value)}
-        placeholder="Question"
-      />
-      {data.pollType === 'multiple-choice' && (
-        <div className="space-y-1.5">
-          {options.map((opt, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCorrectOptionIndex(correctOptionIndex === i ? undefined : i)}
-                className={`w-5 h-5 rounded-full border-2 shrink-0 transition-colors ${
-                  correctOptionIndex === i ? 'bg-green-500 border-green-500' : 'border-gray-300'
-                }`}
-              />
-              <input
-                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                value={opt}
-                onChange={e => updateOption(i, e.target.value)}
-                placeholder={`Option ${i + 1}`}
-              />
-              {options.length > 2 && (
-                <button
-                  onClick={() => {
-                    setOptions(prev => prev.filter((_, idx) => idx !== i));
-                    if (correctOptionIndex === i) setCorrectOptionIndex(undefined);
-                    else if (correctOptionIndex != null && correctOptionIndex > i) setCorrectOptionIndex(correctOptionIndex - 1);
-                  }}
-                  className="text-gray-300 hover:text-red-500 text-lg leading-none"
-                >×</button>
-              )}
-            </div>
-          ))}
-          {options.length < 6 && (
-            <button
-              onClick={() => setOptions(prev => [...prev, ''])}
-              className="text-xs text-brand-600 hover:text-brand-700 font-bold"
-            >+ Add option</button>
-          )}
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-pink-100 bg-pink-50/60">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-lg font-black text-gray-900">Edit Question</h2>
+            <span className="text-xs bg-white border border-pink-200 text-pink-600 font-semibold px-2.5 py-0.5 rounded-full">
+              {data.pollType === 'multiple-choice' ? '📊 Multiple Choice' : '💬 Open Text'}
+            </span>
+          </div>
+          <button onClick={onCancel} className="text-gray-300 hover:text-gray-700 text-2xl leading-none transition-colors">×</button>
         </div>
-      )}
-      <div className="flex items-center gap-3">
-        <label className="text-xs text-gray-500">Duration:</label>
-        <select
-          value={duration}
-          onChange={e => setDuration(Number(e.target.value))}
-          className="bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-800"
-        >
-          <option value={0}>No timer</option>
-          <option value={15}>15s</option>
-          <option value={30}>30s</option>
-          <option value={60}>1 min</option>
-          <option value={120}>2 min</option>
-        </select>
-      </div>
-      <div className="flex gap-2 justify-end">
-        <button onClick={onCancel} className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200">Cancel</button>
-        <button onClick={save} className="text-sm bg-brand-500 hover:bg-brand-600 text-white font-bold px-3 py-1.5 rounded-lg">Save</button>
+
+        <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+
+          {/* Question — prominent large textarea */}
+          <textarea
+            className="w-full bg-gray-50 border-2 border-pink-100 focus:border-brand-400 rounded-2xl px-4 py-3.5 text-xl font-bold text-gray-900 placeholder-gray-300 focus:outline-none resize-none leading-snug transition-colors"
+            rows={2}
+            value={question}
+            onChange={e => setQuestion(e.target.value)}
+            placeholder="Ask something..."
+            autoFocus
+          />
+
+          {/* Multiple-choice options — Slido-style full cards */}
+          {data.pollType === 'multiple-choice' && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Answer options</label>
+                {correctOptionIndex != null && (
+                  <span className="text-xs bg-green-50 text-green-600 border border-green-200 font-semibold px-2 py-0.5 rounded-full">
+                    ✓ Correct marked
+                  </span>
+                )}
+              </div>
+              {options.map((opt, i) => {
+                const c = OPTION_PALETTE[i % OPTION_PALETTE.length];
+                const isCorrect = correctOptionIndex === i;
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-3 rounded-2xl border-2 p-3 transition-all ${
+                      isCorrect ? 'border-green-300 bg-green-50' : 'border-gray-100 bg-gray-50 hover:border-pink-200'
+                    }`}
+                  >
+                    {/* Letter badge — click to mark correct */}
+                    <button
+                      type="button"
+                      title="Click to mark as correct answer"
+                      onClick={() => setCorrectOptionIndex(isCorrect ? undefined : i)}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white shrink-0 transition-all shadow-sm ${
+                        isCorrect ? 'bg-green-500 scale-105' : `${c.bg} hover:scale-105`
+                      }`}
+                    >
+                      {isCorrect ? '✓' : c.letter}
+                    </button>
+
+                    <input
+                      className="flex-1 bg-transparent text-sm font-semibold text-gray-800 placeholder-gray-400 focus:outline-none"
+                      value={opt}
+                      onChange={e => updateOption(i, e.target.value)}
+                      placeholder={`Option ${c.letter}…`}
+                    />
+
+                    {options.length > 2 && (
+                      <button
+                        onClick={() => removeOption(i)}
+                        className="text-gray-300 hover:text-red-400 text-xl leading-none shrink-0 transition-colors"
+                      >×</button>
+                    )}
+                  </div>
+                );
+              })}
+
+              {options.length < 6 && (
+                <button
+                  onClick={() => setOptions(prev => [...prev, ''])}
+                  className="w-full py-3 rounded-2xl border-2 border-dashed border-pink-200 text-pink-500 hover:border-pink-400 hover:bg-pink-50 text-sm font-bold transition-all"
+                >
+                  + Add option
+                </button>
+              )}
+              <p className="text-xs text-gray-400 text-center">Tap a letter badge to mark the correct answer</p>
+            </div>
+          )}
+
+          {/* Open-text reference answer */}
+          {data.pollType === 'open-text' && (
+            <div>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">
+                Correct Answer <span className="text-gray-300 normal-case font-normal">— optional, enables scoring</span>
+              </label>
+              <input
+                className="w-full bg-gray-50 border-2 border-pink-100 focus:border-brand-400 rounded-2xl px-4 py-3 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:outline-none transition-colors"
+                value={correctAnswer}
+                onChange={e => setCorrectAnswer(e.target.value)}
+                placeholder="Expected answer (case/space insensitive)"
+              />
+            </div>
+          )}
+
+          {/* Timer — pill chips */}
+          <div>
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2.5">Time limit</label>
+            <div className="flex gap-2 flex-wrap">
+              {TIMER_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setDuration(opt.value)}
+                  className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${
+                    duration === opt.value
+                      ? 'bg-brand-500 border-brand-500 text-white shadow-md shadow-brand-400/25'
+                      : 'border-gray-200 text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-4 border-t border-pink-100">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={save}
+            disabled={!question.trim()}
+            className="flex-1 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-30 text-sm font-black text-white transition-colors shadow-lg shadow-brand-500/25"
+          >
+            Save Changes
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-// Modal for editing a past (closed) poll
+// Modal for editing a launched (active or closed) poll
 function EditPollModal({
   poll,
   correctAnswer: initialCorrectAnswer,
   onSave,
   onClose,
 }: {
-  poll: { id: string; question: string; type: string; options: { id: string; text: string }[]; correctOptionId?: string };
+  poll: { id: string; question: string; type: string; options: { id: string; text: string }[]; correctOptionId?: string; isActive?: boolean };
   correctAnswer?: string;
   onSave: (data: { question: string; correctOptionId?: string; correctAnswer?: string }) => void;
   onClose: () => void;
@@ -144,55 +246,60 @@ function EditPollModal({
   const [correctOptionId, setCorrectOptionId] = useState<string | undefined>(poll.correctOptionId);
   const [correctAnswer, setCorrectAnswer] = useState(initialCorrectAnswer ?? '');
 
-  const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
-  const OPTION_COLORS = ['bg-red-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-pink-500'];
-
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl">
-        {/* Modal header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-pink-100 bg-pink-50/50">
-          <h2 className="text-lg font-black text-gray-900">Edit Poll</h2>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-pink-100 bg-pink-50/60">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-lg font-black text-gray-900">Edit Question</h2>
+            {poll.isActive && (
+              <span className="text-xs bg-green-50 border border-green-200 text-green-600 font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+                Live
+              </span>
+            )}
+          </div>
           <button onClick={onClose} className="text-gray-300 hover:text-gray-700 text-2xl leading-none transition-colors">×</button>
         </div>
 
         <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-          {/* Question */}
-          <div>
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Question</label>
-            <textarea
-              className="w-full bg-gray-50 border border-pink-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-              rows={3}
-              value={question}
-              onChange={e => setQuestion(e.target.value)}
-              placeholder="Question text..."
-            />
-          </div>
 
-          {/* MC: mark correct option */}
+          {/* Question — large textarea */}
+          <textarea
+            className="w-full bg-gray-50 border-2 border-pink-100 focus:border-brand-400 rounded-2xl px-4 py-3.5 text-xl font-bold text-gray-900 placeholder-gray-300 focus:outline-none resize-none leading-snug transition-colors"
+            rows={2}
+            value={question}
+            onChange={e => setQuestion(e.target.value)}
+            placeholder="Question text..."
+            autoFocus
+          />
+
+          {/* MC options */}
           {poll.type === 'multiple-choice' && poll.options.length > 0 && (
             <div>
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">
-                Correct Option <span className="text-gray-300 normal-case">(tap to toggle)</span>
-              </label>
+              <div className="flex items-center justify-between mb-2.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Answer options</label>
+                <span className="text-xs text-gray-400">Tap a badge to mark correct</span>
+              </div>
               <div className="space-y-2">
                 {poll.options.map((opt, i) => {
                   const isCorrect = correctOptionId === opt.id;
-                  const color = OPTION_COLORS[i % OPTION_COLORS.length];
-                  const letter = OPTION_LETTERS[i] ?? String(i + 1);
+                  const c = OPTION_PALETTE[i % OPTION_PALETTE.length];
                   return (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => setCorrectOptionId(isCorrect ? undefined : opt.id)}
-                      className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 border transition-all text-left ${
-                        isCorrect
-                          ? 'border-green-300 bg-green-50'
-                          : 'border-gray-100 bg-gray-50 hover:bg-pink-50'
+                      className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3 border-2 transition-all text-left ${
+                        isCorrect ? 'border-green-300 bg-green-50' : 'border-gray-100 bg-gray-50 hover:border-pink-200 hover:bg-pink-50'
                       }`}
                     >
-                      <div className={`w-7 h-7 rounded-lg ${color} flex items-center justify-center font-black text-white text-xs shrink-0`}>
-                        {isCorrect ? '✓' : letter}
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0 transition-all ${
+                        isCorrect ? 'bg-green-500 scale-105' : `${c.bg}`
+                      }`}>
+                        {isCorrect ? '✓' : c.letter}
                       </div>
                       <span className={`text-sm font-semibold flex-1 ${isCorrect ? 'text-green-700' : 'text-gray-700'}`}>
                         {opt.text}
@@ -205,15 +312,17 @@ function EditPollModal({
             </div>
           )}
 
-          {/* Open text: correct answer */}
+          {/* Open text */}
           {poll.type === 'open-text' && (
             <div>
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Reference Answer</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">
+                Correct Answer <span className="text-gray-300 normal-case font-normal">— optional, enables scoring</span>
+              </label>
               <input
-                className="w-full bg-gray-50 border border-pink-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full bg-gray-50 border-2 border-pink-100 focus:border-brand-400 rounded-2xl px-4 py-3 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:outline-none transition-colors"
                 value={correctAnswer}
                 onChange={e => setCorrectAnswer(e.target.value)}
-                placeholder="Expected answer (exact match, case/space insensitive)"
+                placeholder="Expected answer (case/space insensitive)"
               />
             </div>
           )}
@@ -230,7 +339,7 @@ function EditPollModal({
           <button
             onClick={() => onSave({ question: question.trim(), correctOptionId, correctAnswer: correctAnswer.trim() || undefined })}
             disabled={!question.trim()}
-            className="flex-1 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-30 text-sm font-black text-white transition-colors"
+            className="flex-1 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-30 text-sm font-black text-white transition-colors shadow-lg shadow-brand-500/25"
           >
             Save Changes
           </button>
