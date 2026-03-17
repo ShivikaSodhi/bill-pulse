@@ -5,14 +5,19 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50: '#f0f4ff',
-          100: '#e0e9ff',
-          200: '#c7d7fe',
-          300: '#a5b4fc',
-          500: '#4f46e5',
-          600: '#4338ca',
-          700: '#3730a3',
+          50:  '#FFF4EE',
+          100: '#FFE4D5',
+          200: '#FFC8A8',
+          300: '#FFA06B',
+          400: '#FF7538',
+          500: '#FF5A0A',
+          600: '#EB4800',
+          700: '#C23D00',
+          800: '#9A3100',
         },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
   },

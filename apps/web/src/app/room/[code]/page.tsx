@@ -209,30 +209,58 @@ export default function ParticipantRoom() {
   // Show join form if no name saved yet (direct URL access)
   if (showJoinForm && !room) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-6 space-y-4">
-          <div className="text-center mb-2">
-            <div className="font-mono font-bold text-2xl tracking-widest text-brand-600 mb-1">{code}</div>
-            <p className="text-gray-500 text-sm">Enter your name to join</p>
+      <div className="min-h-screen bg-mesh flex flex-col items-center justify-center p-6">
+        {/* Logo */}
+        <div className="flex items-center gap-2 mb-10">
+          <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/40">
+            <span className="text-white text-sm font-black">B</span>
           </div>
-          <input
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
-            placeholder="Your name"
-            value={nameInput}
-            onChange={e => setNameInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleJoinSubmit()}
-            autoFocus
-          />
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-          <button
-            onClick={handleJoinSubmit}
-            disabled={!nameInput.trim() || joining}
-            className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg transition-colors"
-          >
-            {joining ? 'Joining...' : 'Join Room'}
-          </button>
-          <p className="text-center text-sm text-gray-400">
-            or <a href="/" className="text-brand-500 hover:underline">go to home page</a>
+          <span className="text-white font-bold text-lg tracking-tight">Bill Pulse</span>
+        </div>
+
+        <div className="w-full max-w-sm">
+          {/* Code badge */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 bg-brand-500/20 border border-brand-500/30 rounded-full px-4 py-1.5 mb-4">
+              <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
+              <span className="text-brand-300 text-xs font-semibold uppercase tracking-wider">Live session</span>
+            </div>
+            <div className="font-mono font-black text-4xl tracking-[0.2em] text-white mb-1">{code}</div>
+            <p className="text-white/50 text-sm">Enter your name to join this session</p>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-6 space-y-4">
+            <input
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+              placeholder="Your name"
+              value={nameInput}
+              onChange={e => setNameInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleJoinSubmit()}
+              autoFocus
+            />
+            {error && (
+              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                <span className="text-red-400 text-sm">⚠</span>
+                <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            )}
+            <button
+              onClick={handleJoinSubmit}
+              disabled={!nameInput.trim() || joining}
+              className="w-full bg-brand-500 hover:bg-brand-600 active:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg shadow-brand-500/30 text-sm"
+            >
+              {joining ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Joining…
+                </span>
+              ) : 'Join Session →'}
+            </button>
+          </div>
+
+          <p className="text-center text-xs text-white/30 mt-5">
+            Wrong room?{' '}
+            <a href="/" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">Go to home</a>
           </p>
         </div>
       </div>
@@ -241,21 +269,28 @@ export default function ParticipantRoom() {
 
   if (error && !room) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center">
-          <p className="text-2xl text-red-500 font-semibold mb-2">Room not found</p>
-          <p className="text-gray-500 mb-4">The room <span className="font-mono font-bold">{code}</span> doesn&apos;t exist or has ended.</p>
-          <a href="/" className="text-brand-500 hover:underline">Go back home</a>
-        </div>
+      <div className="min-h-screen bg-mesh flex flex-col items-center justify-center p-6 text-center">
+        <div className="text-5xl mb-4">😕</div>
+        <h2 className="text-2xl font-bold text-white mb-2">Room not found</h2>
+        <p className="text-white/50 mb-6">
+          The room <span className="font-mono font-bold text-white/80">{code}</span> doesn&apos;t exist or has ended.
+        </p>
+        <a
+          href="/"
+          className="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm"
+        >
+          Back to home
+        </a>
       </div>
     );
   }
 
   if (!room) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center text-gray-400">
-          <p className="text-lg">Joining room...</p>
+      <div className="min-h-screen bg-mesh flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white/50 text-sm">Connecting to session…</p>
         </div>
       </div>
     );
