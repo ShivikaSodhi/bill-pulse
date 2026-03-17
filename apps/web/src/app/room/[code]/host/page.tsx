@@ -188,7 +188,7 @@ export default function HostRoom() {
     });
 
     socket.on('poll-created', ({ poll }: { poll: Poll }) => {
-      setPolls(prev => [...prev.map(p => ({ ...p, isActive: false })), { ...poll, textResponses: poll.textResponses ?? [] }]);
+      setPolls(prev => [...prev, { ...poll, textResponses: poll.textResponses ?? [] }]);
     });
 
     // Host-only: image + correct answer metadata
@@ -255,6 +255,12 @@ export default function HostRoom() {
       setPolls(prev => prev.filter(p => p.id !== pollId));
     });
 
+    socket.on('poll-reset', ({ pollId, options }: { pollId: string; options: { id: string; text: string; votes: number }[] }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, options, textResponses: [], responsesPublished: false } : p));
+      setScoredResponseIds(prev => { const n = { ...prev }; delete n[pollId]; return n; });
+      setVoterDetails(prev => { const n = { ...prev }; delete n[pollId]; return n; });
+    });
+
     socket.on('poll-updated', ({ pollId, question }: { pollId: string; question: string }) => {
       setPolls(prev => prev.map(p => p.id === pollId ? { ...p, question } : p));
     });
@@ -292,6 +298,7 @@ export default function HostRoom() {
       socket.off('timer-started');
       socket.off('poll-revealed');
       socket.off('poll-deleted');
+      socket.off('poll-reset');
       socket.off('poll-updated');
       socket.off('question-added');
       socket.off('question-upvoted');
@@ -343,7 +350,7 @@ export default function HostRoom() {
     getSocket().emit('upvote-question', { questionId });
   };
 
-  const activePoll = polls.find(p => p.isActive);
+  const activePolls = polls.filter(p => p.isActive);
   const pastPolls = polls.filter(p => !p.isActive);
 
   return (
@@ -459,38 +466,37 @@ export default function HostRoom() {
               </div>
             )}
 
-            {/* Active poll */}
-            {activePoll && (
+            {/* Active polls */}
+            {activePolls.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">Live Poll</p>
-                  {pendingPolls.length > 0 && (
-                    <button
-                      onClick={() => handleClosePoll(activePoll.id)}
-                      className="text-xs bg-brand-500 hover:bg-brand-600 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      Next Question →
-                    </button>
-                  )}
+                  <p className="text-xs font-semibold text-green-600 uppercase tracking-wide">
+                    Live Polls ({activePolls.length})
+                  </p>
                 </div>
-                <PollResults
-                  question={activePoll.question}
-                  type={activePoll.type}
-                  options={activePoll.options}
-                  textResponses={activePoll.textResponses}
-                  imageBase64={activePoll.imageBase64}
-                  isActive={true}
-                  isRevealed={activePoll.isRevealed}
-                  responsesPublished={activePoll.responsesPublished}
-                  isHost={true}
-                  duration={activePoll.duration}
-                  endsAt={activePoll.endsAt}
-                  revealedAt={activePoll.revealedAt}
-                  correctOptionId={activePoll.correctOptionId}
-                  onClose={() => handleClosePoll(activePoll.id)}
-                  onPublish={() => handlePublishResponses(activePoll.id)}
-                  onReveal={!activePoll.isRevealed ? () => handleRevealPoll(activePoll.id) : undefined}
-                />
+                <div className="space-y-3">
+                  {activePolls.map(poll => (
+                    <PollResults
+                      key={poll.id}
+                      question={poll.question}
+                      type={poll.type}
+                      options={poll.options}
+                      textResponses={poll.textResponses}
+                      imageBase64={poll.imageBase64}
+                      isActive={true}
+                      isRevealed={poll.isRevealed}
+                      responsesPublished={poll.responsesPublished}
+                      isHost={true}
+                      duration={poll.duration}
+                      endsAt={poll.endsAt}
+                      revealedAt={poll.revealedAt}
+                      correctOptionId={poll.correctOptionId}
+                      onClose={() => handleClosePoll(poll.id)}
+                      onPublish={() => handlePublishResponses(poll.id)}
+                      onReveal={!poll.isRevealed ? () => handleRevealPoll(poll.id) : undefined}
+                    />
+                  ))}
+                </div>
               </div>
             )}
 
@@ -566,7 +572,7 @@ export default function HostRoom() {
               </div>
             )}
 
-            {polls.length === 0 && (
+            {activePolls.length === 0 && pastPolls.length === 0 && (
               <div className="text-center py-12 text-gray-400">
                 <div className="text-4xl mb-2">📊</div>
                 <p>Create your first poll above</p>

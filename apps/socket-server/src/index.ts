@@ -94,7 +94,7 @@ io.on('connection', (socket) => {
     const room = getRoom(socket.data.roomCode);
     if (!room || !socket.data.isHost) return;
 
-    room.polls.forEach(p => { p.isActive = false; });
+    // Multiple polls can be active simultaneously — don't deactivate existing ones
 
     const pollOptions = type === 'multiple-choice'
       ? options.map(text => ({ id: uuidv4(), text, votes: 0 }))
@@ -287,10 +287,24 @@ io.on('connection', (socket) => {
     if (!room || !socket.data.isHost) return;
     const poll = room.polls.find(p => p.id === pollId);
     if (!poll || poll.isActive) return;
+    // Reverse any scores awarded for this poll
     reverseScores(room, poll);
     reverseTextScores(room, poll);
-    room.polls = room.polls.filter(p => p.id !== pollId);
-    io.to(room.code).emit('poll-deleted', { pollId });
+    // Reset all response data, keep the question itself
+    poll.options.forEach(o => { o.votes = 0; });
+    poll.textResponses = [];
+    poll.userVotes = {};
+    poll.userVoteTimes = {};
+    poll.scoredResponseIds = [];
+    poll.responsesPublished = false;
+    // Clear per-socket vote-dedup tracking for this poll
+    io.sockets.sockets.forEach(s => {
+      if (s.data.votes) {
+        s.data.votes.delete(`${s.id}:${pollId}`);
+        s.data.votes.delete(`text:${s.id}:${pollId}`);
+      }
+    });
+    io.to(room.code).emit('poll-reset', { pollId, options: poll.options });
     io.to(room.code).emit('leaderboard-updated', { leaderboard: room.leaderboard });
   });
 

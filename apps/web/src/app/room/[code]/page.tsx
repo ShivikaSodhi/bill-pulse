@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getSocket } from '@/lib/socket';
 import { PollResults, TextResponse } from '@/components/PollResults';
@@ -85,7 +85,7 @@ export default function ParticipantRoom() {
     });
 
     socket.on('poll-created', ({ poll }: { poll: Poll }) => {
-      setPolls(prev => [...prev.map(p => ({ ...p, isActive: false })), { ...poll, textResponses: poll.textResponses ?? [] }]);
+      setPolls(prev => [...prev, { ...poll, textResponses: poll.textResponses ?? [] }]);
     });
 
     socket.on('vote-update', ({ pollId, options }: { pollId: string; options: PollOption[] }) => {
@@ -99,6 +99,14 @@ export default function ParticipantRoom() {
 
     socket.on('poll-deleted', ({ pollId }: { pollId: string }) => {
       setPolls(prev => prev.filter(p => p.id !== pollId));
+    });
+
+    socket.on('poll-reset', ({ pollId, options }: { pollId: string; options: { id: string; text: string; votes: number }[] }) => {
+      setPolls(prev => prev.map(p => p.id === pollId ? { ...p, options, textResponses: [], responsesPublished: false } : p));
+      setMyVotes(prev => { const n = { ...prev }; delete n[pollId]; return n; });
+      setMyTextResponses(prev => { const n = { ...prev }; delete n[pollId]; return n; });
+      setMyTextResponseIds(prev => { const n = { ...prev }; delete n[pollId]; return n; });
+      setScoredResponseIds(prev => { const n = { ...prev }; delete n[pollId]; return n; });
     });
 
     // Server tells the submitter their response ID for scoring tracking
@@ -179,6 +187,7 @@ export default function ParticipantRoom() {
       socket.off('responses-published');
       socket.off('participants-updated');
       socket.off('poll-deleted');
+      socket.off('poll-reset');
       socket.off('text-response-submitted');
       socket.disconnect();
     };
@@ -323,12 +332,12 @@ export default function ParticipantRoom() {
     );
   }
 
-  const activePoll = polls.find(p => p.isActive);
-  // Polls visible to participants: closed ones + active if revealed
-  const visiblePolls = polls.filter(p => !p.isActive || p.isRevealed);
-  const clampedIndex = Math.min(viewIndex, Math.max(0, visiblePolls.length - 1));
-  const currentPoll = visiblePolls[clampedIndex];
-  const isOnLatest = clampedIndex === visiblePolls.length - 1;
+  // Live: active AND revealed (hidden until host reveals)
+  const livePolls = polls.filter(p => p.isActive && p.isRevealed);
+  // Waiting: active but not yet revealed
+  const hasUnrevealedActive = polls.some(p => p.isActive && !p.isRevealed);
+  // Past: closed
+  const pastPolls = polls.filter(p => !p.isActive);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -363,104 +372,111 @@ export default function ParticipantRoom() {
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
         {tab === 'polls' && (
-          <>
-            {/* No questions revealed yet */}
-            {visiblePolls.length === 0 && (
+          <div className="space-y-6">
+            {/* ── Live section ── */}
+            {livePolls.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                  </span>
+                  <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">
+                    Live — {livePolls.length} active {livePolls.length === 1 ? 'poll' : 'polls'}
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {livePolls.map(poll => (
+                    <PollResults
+                      key={poll.id}
+                      question={poll.question}
+                      type={poll.type}
+                      options={poll.options}
+                      textResponses={poll.textResponses}
+                      imageBase64={poll.imageBase64}
+                      isActive={true}
+                      isRevealed={poll.isRevealed}
+                      responsesPublished={poll.responsesPublished}
+                      endsAt={poll.endsAt}
+                      revealedAt={poll.revealedAt}
+                      correctOptionId={poll.correctOptionId}
+                      scoredResponseIds={scoredResponseIds[poll.id]}
+                      myVote={myVotes[poll.id]}
+                      myTextResponse={myTextResponses[poll.id]}
+                      myTextResponseId={myTextResponseIds[poll.id]}
+                      onVote={(optionId) => handleVote(poll.id, optionId)}
+                      onTextResponse={(text) => handleTextResponse(poll.id, text)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Waiting indicator (question created but not yet revealed) */}
+            {hasUnrevealedActive && livePolls.length === 0 && (
+              <div className="text-center py-10 text-gray-400">
+                <div className="w-8 h-8 border-2 border-brand-300 border-t-brand-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="font-medium text-gray-500">Next question coming up...</p>
+                <p className="text-sm mt-1">Stand by</p>
+              </div>
+            )}
+
+            {/* Nothing at all yet */}
+            {livePolls.length === 0 && !hasUnrevealedActive && pastPolls.length === 0 && (
               <div className="text-center py-20 text-gray-400">
                 <div className="text-5xl mb-3">📊</div>
-                {activePoll
-                  ? <><p className="font-semibold text-gray-500 text-lg">Next question coming up...</p><p className="text-sm mt-1">Stand by</p></>
-                  : <p className="font-medium text-gray-500">Waiting for the first question...</p>
-                }
+                <p className="font-medium text-gray-500">Waiting for the first question...</p>
               </div>
             )}
 
-            {/* Question card */}
-            {currentPoll && (
-              <div className="space-y-3">
-                {/* Navigation bar */}
-                {visiblePolls.length > 1 && (
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => { autoAdvanceRef.current = false; setViewIndex(i => Math.max(0, i - 1)); }}
-                      disabled={clampedIndex === 0}
-                      className="flex items-center gap-1 text-sm font-medium text-brand-600 disabled:text-gray-300 disabled:cursor-not-allowed"
-                    >
-                      ← Prev
-                    </button>
-                    <span className="text-xs text-gray-400 font-medium">
-                      Question {clampedIndex + 1} of {visiblePolls.length}
-                    </span>
-                    <button
-                      onClick={() => {
-                        const next = clampedIndex + 1;
-                        if (next >= visiblePolls.length) return;
-                        setViewIndex(next);
-                        if (next === visiblePolls.length - 1) autoAdvanceRef.current = true;
-                      }}
-                      disabled={clampedIndex === visiblePolls.length - 1}
-                      className="flex items-center gap-1 text-sm font-medium text-brand-600 disabled:text-gray-300 disabled:cursor-not-allowed"
-                    >
-                      Next →
-                    </button>
-                  </div>
-                )}
-
-                {/* Live badge when a new question is waiting */}
-                {!isOnLatest && activePoll && activePoll.isRevealed && (
-                  <button
-                    onClick={() => { autoAdvanceRef.current = true; setViewIndex(visiblePolls.length - 1); }}
-                    className="w-full text-center text-xs bg-green-50 border border-green-200 text-green-700 font-semibold py-2 rounded-lg"
-                  >
-                    ● Live question — tap to jump to it
-                  </button>
-                )}
-
-                <PollResults
-                  key={currentPoll.id}
-                  question={currentPoll.question}
-                  type={currentPoll.type}
-                  options={currentPoll.options}
-                  textResponses={currentPoll.textResponses}
-                  imageBase64={currentPoll.imageBase64}
-                  isActive={currentPoll.isActive}
-                  isRevealed={currentPoll.isRevealed}
-                  responsesPublished={currentPoll.responsesPublished}
-                  endsAt={currentPoll.isActive ? currentPoll.endsAt : undefined}
-                  revealedAt={currentPoll.revealedAt}
-                  correctOptionId={currentPoll.correctOptionId}
-                  scoredResponseIds={scoredResponseIds[currentPoll.id]}
-                  myVote={myVotes[currentPoll.id]}
-                  myTextResponse={myTextResponses[currentPoll.id]}
-                  myTextResponseId={myTextResponseIds[currentPoll.id]}
-                  onVote={currentPoll.isActive ? (optionId) => handleVote(currentPoll.id, optionId) : undefined}
-                  onTextResponse={currentPoll.isActive ? (text) => handleTextResponse(currentPoll.id, text) : undefined}
-                />
-
-                {/* Leaderboard (shown after any scored question closes) */}
-                {!currentPoll.isActive && leaderboard.length > 0 && isOnLatest && (
-                  <div className="bg-white rounded-xl shadow p-4">
-                    <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-2">🏆 Leaderboard</p>
-                    <div className="space-y-1.5">
-                      {leaderboard.map((entry, i) => (
-                        <div key={entry.id} className={`flex items-center gap-3 rounded-lg px-2 py-1 ${entry.id === socketId ? 'bg-brand-50' : ''}`}>
-                          <span className="text-sm font-bold text-gray-400 w-5 text-right">{i + 1}</span>
-                          <span className="flex-1 text-sm font-medium text-gray-800 truncate">
-                            {entry.name}{entry.id === socketId ? ' (you)' : ''}
-                          </span>
-                          <span className="text-sm font-bold text-yellow-600">{entry.score.toLocaleString()} pts</span>
-                        </div>
-                      ))}
+            {/* ── Leaderboard ── */}
+            {leaderboard.length > 0 && (
+              <div className="bg-white rounded-xl shadow p-4">
+                <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-2">🏆 Leaderboard</p>
+                <div className="space-y-1.5">
+                  {leaderboard.map((entry, i) => (
+                    <div key={entry.id} className={`flex items-center gap-3 rounded-lg px-2 py-1 ${entry.id === socketId ? 'bg-brand-50' : ''}`}>
+                      <span className="text-sm font-bold text-gray-400 w-5 text-right">{i + 1}</span>
+                      <span className="flex-1 text-sm font-medium text-gray-800 truncate">
+                        {entry.name}{entry.id === socketId ? ' (you)' : ''}
+                      </span>
+                      <span className="text-sm font-bold text-yellow-600">{entry.score.toLocaleString()} pts</span>
                     </div>
-                  </div>
-                )}
-
-                {isOnLatest && !currentPoll.isActive && (
-                  <p className="text-center text-sm text-gray-400">Waiting for next question...</p>
-                )}
+                  ))}
+                </div>
               </div>
             )}
-          </>
+
+            {/* ── Past section ── */}
+            {pastPolls.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                  Past — {pastPolls.length} {pastPolls.length === 1 ? 'poll' : 'polls'}
+                </p>
+                <div className="space-y-3">
+                  {pastPolls.map(poll => (
+                    <PollResults
+                      key={poll.id}
+                      question={poll.question}
+                      type={poll.type}
+                      options={poll.options}
+                      textResponses={poll.textResponses}
+                      imageBase64={poll.imageBase64}
+                      isActive={false}
+                      isRevealed={poll.isRevealed}
+                      responsesPublished={poll.responsesPublished}
+                      revealedAt={poll.revealedAt}
+                      correctOptionId={poll.correctOptionId}
+                      scoredResponseIds={scoredResponseIds[poll.id]}
+                      myVote={myVotes[poll.id]}
+                      myTextResponse={myTextResponses[poll.id]}
+                      myTextResponseId={myTextResponseIds[poll.id]}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {tab === 'qa' && (
