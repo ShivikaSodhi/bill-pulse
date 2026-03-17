@@ -29,50 +29,12 @@ app.get('/room/:code', (req, res) => {
   res.json(serializeRoom(room));
 });
 
-// ── Fuzzy matching helpers ──────────────────────────────────────────────────
+// ── Text matching helpers ────────────────────────────────────────────────────
 
 function normText(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+  return s.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-function levenshtein(a: string, b: string): number {
-  const m = a.length, n = b.length;
-  if (m === 0) return n;
-  if (n === 0) return m;
-  const dp = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[m][n];
-}
-
-function fuzzyScore(ref: string, candidate: string): number {
-  const a = normText(ref);
-  const b = normText(candidate);
-  if (!a || !b) return 0;
-  if (a === b) return 1;
-  if (a.includes(b) || b.includes(a)) return 0.9;
-  // Word-level Jaccard
-  const wordsA = a.split(' ').filter(w => w.length > 1);
-  const wordsB = b.split(' ').filter(w => w.length > 1);
-  if (wordsA.length > 0 && wordsB.length > 0) {
-    const setA = new Set(wordsA);
-    const setB = new Set(wordsB);
-    const intersection = [...setA].filter(w => setB.has(w)).length;
-    const union = new Set([...setA, ...setB]).size;
-    const jaccard = intersection / union;
-    if (jaccard >= 0.5) return 0.6 + jaccard * 0.3;
-  }
-  // Character edit-distance ratio
-  const dist = levenshtein(a, b);
-  return 1 - dist / Math.max(a.length, b.length);
-}
 
 // Strip internal socketId before sending to clients
 function stripResponse(r: TextResponse): Omit<TextResponse, 'socketId'> {
@@ -427,20 +389,10 @@ function awardTextScores(room: ReturnType<typeof getRoom>, poll: Poll) {
   if (!room || !poll.correctAnswer || poll.type !== 'open-text') return;
   if (poll.textResponses.length === 0) return;
 
-  // Score each response against the reference answer
-  const scored = poll.textResponses.map(r => ({
-    response: r,
-    sim: fuzzyScore(poll.correctAnswer!, r.text),
-  }));
+  const ref = normText(poll.correctAnswer);
+  const winners = poll.textResponses.filter(r => normText(r.text) === ref);
 
-  const maxSim = Math.max(...scored.map(s => s.sim));
-  if (maxSim < 0.4) return; // nobody close enough
-
-  // Award the best match(es): within 90% of the top score, and above 0.4
-  const threshold = Math.max(maxSim * 0.9, 0.4);
-  const winners = scored.filter(s => s.sim >= threshold);
-
-  for (const { response } of winners) {
+  for (const response of winners) {
     if (poll.scoredResponseIds.includes(response.id)) continue;
     poll.scoredResponseIds.push(response.id);
     const entry = room.leaderboard.find(e => e.id === response.socketId);

@@ -151,7 +151,6 @@ export default function HostRoom() {
 
   const initialized = useRef(false);
   const pendingPollsRef = useRef<QuestionData[]>([]);
-  const autoRevealRef = useRef(false);
 
   useEffect(() => { pendingPollsRef.current = pendingPolls; }, [pendingPolls]);
 
@@ -190,10 +189,6 @@ export default function HostRoom() {
 
     socket.on('poll-created', ({ poll }: { poll: Poll }) => {
       setPolls(prev => [...prev.map(p => ({ ...p, isActive: false })), { ...poll, textResponses: poll.textResponses ?? [] }]);
-      if (autoRevealRef.current) {
-        autoRevealRef.current = false;
-        getSocket().emit('reveal-poll', { pollId: poll.id });
-      }
     });
 
     // Host-only: image + correct answer metadata
@@ -239,7 +234,6 @@ export default function HostRoom() {
       const next = pendingPollsRef.current[0];
       if (next) {
         setPendingPolls(prev => prev.slice(1));
-        autoRevealRef.current = true;
         getSocket().emit('create-poll', { question: next.question, type: next.pollType, options: next.options, imageBase64: next.imageBase64, duration: next.duration, correctOptionIndex: next.correctOptionIndex, correctAnswer: next.correctAnswer });
       }
     });
